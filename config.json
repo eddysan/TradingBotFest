@@ -1,0 +1,8 @@
+{
+    "gridSide": "long",
+    "gridDistance": 0.02,
+    "tokenIncrement": 0.4,
+    "SLAmount": 10,
+    "entryPrice": 0,
+    "entryToken": 0
+}
