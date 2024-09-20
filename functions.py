@@ -124,6 +124,7 @@ params = {
     'timeInForce':  'GTC',
     'quantity':     '0.009',
     'price':        '2300',
+    'reduceOnly': True,
     'dualSidePosition': True,
     'positionSide': 'LONG'
 }
