@@ -2,10 +2,10 @@
     "token_pair":"BTCUSDT",
     "grid_side": "LONG",
     "grid_distance": 0.02,
-    "token_increment": 0.4,
+    "quantity_increment": 0.4,
     "sl_amount": 10,
     "entry_price": 0,
-    "entry_token": 0,
+    "entry_quantity": 0,
     "entry_order": [],
     "body_order": [],
     "sl_order": []
