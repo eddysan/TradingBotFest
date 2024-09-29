@@ -6,6 +6,8 @@
     "sl_amount": 10,
     "entry_price": 0,
     "entry_quantity": 0,
+    "price_decimal": 0,
+    "quantity_decimal": 0,
     "entry_order": [],
     "body_order": [],
     "sl_order": []
