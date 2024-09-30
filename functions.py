@@ -2,6 +2,46 @@ import numpy as np
 import json
 from binance.client import Client
 import requests
+import time
+
+
+# get my wallet balance
+def get_account_balance(client):
+    account_balance = client.futures_account_balance()
+    for check_balance in account_balance:
+        if check_balance["asset"] == "USDT":
+            usdt_balance = check_balance["balance"]
+            
+    return usdt_balance
+
+
+# function stolen from gafas, thanks gafas!
+def get_quantity_precision(client, data_grid):
+    step_size = 0
+    tick_size = 0
+    current_symbol = data_grid['token_pair']
+    while True:
+        try:
+            info = client.futures_exchange_info()
+        except Exception as e_rror:
+            print(e_rror)
+            archivo_e = open("log.txt", "a")
+            mensaje_e = time.strftime('%d-%m-%Y %H:%M:%S', time.localtime()) + ' ERROR: ' + str(e_rror) + "\n"
+            archivo_e.write(mensaje_e)
+            archivo_e.close()
+            time.sleep(2)
+        else:
+            break
+    info = info['symbols']
+    for x in range(len(info)):
+        if info[x]['symbol'] == current_symbol:
+            for f in info[x]['filters']:
+                if f['filterType'] == 'LOT_SIZE':
+                    step_size = float(f['stepSize'])
+                if f['filterType'] == 'PRICE_FILTER':
+                    tick_size = float(f['tickSize'])
+            return info[x]['pricePrecision'], info[x]['quantityPrecision']
+    return None
 
 
 # load a json config
@@ -81,16 +121,16 @@ def generate(data_grid):
 
 
 # post a open position for 
-def post_order(data_grid, branch):
+def post_order(client, data_grid, branch):
     order_data = data_grid[branch]
     new_order = []
   
     # Set up authentication
-    binance_config_file = load_config('../credentials.json')  
-    api_key = binance_config_file['api_key']
-    api_secret = binance_config_file['api_secret']
+    #binance_config_file = load_config('../credentials.json')  
+    #api_key = binance_config_file['api_key']
+    #api_secret = binance_config_file['api_secret']
     
-    client = Client(api_key, api_secret)
+    #client = Client(api_key, api_secret)
     
     for order in order_data:
         
@@ -103,6 +143,7 @@ def post_order(data_grid, branch):
             price = str(order['g_price']),
             quantity = str(order['g_quantity'])
             )
+        print(str(order['g_price']) + " | " + str(order['g_quantity']) + " | " + str(order['g_cost']) + " | " + str(response['orderId']))
         new_order.append(order | response)
     
     
