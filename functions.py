@@ -3,6 +3,7 @@ import json
 from binance.client import Client
 import requests
 import time
+import math
 
 
 # get my wallet balance
@@ -40,7 +41,7 @@ def get_quantity_precision(client, data_grid):
                     step_size = float(f['stepSize'])
                 if f['filterType'] == 'PRICE_FILTER':
                     tick_size = float(f['tickSize'])
-            return info[x]['pricePrecision'], info[x]['quantityPrecision']
+            return info[x]['pricePrecision'], info[x]['quantityPrecision'], tick_size
     return None
 
 
@@ -120,6 +121,10 @@ def generate(data_grid):
     return data_grid
 
 
+def round_to_tick_size(price, tick_size):
+    tp = int(abs(math.log10(tick_size)))
+    return round(price, tp)
+
 # post a open position for 
 def post_order(client, data_grid, branch):
     order_data = data_grid[branch]
@@ -132,15 +137,17 @@ def post_order(client, data_grid, branch):
     
     #client = Client(api_key, api_secret)
     
+    
     for order in order_data:
-        
+        prc = round_to_tick_size(order['g_price'], data_grid['tick_size'])
+
         response = client.futures_create_order(
             symbol = data_grid['token_pair'].upper(),
             side = 'BUY' if data_grid['grid_side'] == 'LONG' else 'SELL',
             type = 'LIMIT',
             timeInForce = 'GTC',
             positionSide = data_grid['grid_side'],
-            price = str(order['g_price']),
+            price = str(round_to_tick_size(order['g_price'], data_grid['tick_size'])),
             quantity = str(order['g_quantity'])
             )
         print(str(order['g_price']) + " | " + str(order['g_quantity']) + " | " + str(order['g_cost']) + " | " + str(response['orderId']))

@@ -1,4 +1,6 @@
 from functions import *
+from binance.client import Client
+
 #import numpy as np
 #import json
 #from binance.client import Client
@@ -14,8 +16,6 @@ api_secret = binance_config_file['api_secret']
 
 client = Client(api_key, api_secret)
 
-# get precition on decimals for token pair
-data_grid['price_decimal'], data_grid['quantity_decimal'] = get_quantity_precision(client, data_grid)
 
 # getting account balance
 account_balance = get_account_balance(client)
@@ -28,6 +28,10 @@ data_grid['grid_distance'] = float(input("Grid Distance (2%): ") or 2) / 100
 data_grid['token_increment'] = float(input("Token Increment (40%): ") or 40) / 100
 data_grid['sl_amount'] = float(input("Stop Loss Amount " + "(" + str(sl_compound) + "USDT):") or sl_compound)
 data_grid['entry_price'] = float(input("Entry Price: ") or 0.00000)
+
+# get precition on decimals for token pair
+data_grid['price_decimal'], data_grid['quantity_decimal'], data_grid['tick_size'] = get_quantity_precision(client, data_grid)
+
 
 # if compound is activated is not neccesary entry token
 if data_grid['sl_amount'] != sl_compound:    
@@ -51,7 +55,7 @@ data_grid = generate(data_grid)
 #print(data_grid)
     
 
-data_grid['entry_order'] = post_order(client, data_grid, 'entry_order')
+#data_grid['entry_order'] = post_order(client, data_grid, 'entry_order')
 #print(data_grid)
 
 data_grid['body_order'] = post_order(client, data_grid,'body_order')
