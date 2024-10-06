@@ -6,6 +6,31 @@ import time
 import math
 
 
+# prompt messages  in order to get data externally
+def get_external_data(client, data_grid):
+
+    # try input and apply default values
+    data_grid['token_pair'] = input("Token Pair (BTCUSDT): ").upper() + "USDT"
+    data_grid['grid_side'] = str(input("Grid Side (long): ")).upper() or 'LONG'
+    data_grid['grid_distance'] = float(input("Grid Distance (2%): ") or 2) / 100
+    data_grid['token_increment'] = float(input("Token Increment (40%): ") or 40) / 100
+    data_grid['sl_amount'] = float(input("Stop Loss Amount " + "(" + str(data_grid['sl_compound']) + "USDT): ") or data_grid['sl_compound'])
+    data_grid['entry_price'] = float(input("Entry Price: ") or 0.00000)
+
+    # get precition on decimals for token pair
+    data_grid['price_decimal'], data_grid['quantity_decimal'], data_grid['tick_size'] = get_quantity_precision(client, data_grid)
+
+
+    # if compound is activated is not neccesary entry token
+    if data_grid['sl_amount'] != data_grid['sl_compound']:
+        data_grid['entry_quantity'] = float(input("Entry Token: ") or 0)
+    else:
+        data_grid['entry_quantity'] = round(data_grid['sl_compound'] / data_grid['entry_price'], data_grid['quantity_decimal'])
+
+    return data_grid
+
+
+
 # get my wallet balance
 def get_account_balance(client):
     account_balance = client.futures_account_balance()
@@ -15,6 +40,9 @@ def get_account_balance(client):
             
     return usdt_balance
 
+def round_to_tick_size(price, tick_size):
+    tp = int(abs(math.log10(tick_size)))
+    return round(price, tp)
 
 # function stolen from gafas, thanks gafas!
 def get_quantity_precision(client, data_grid):
@@ -54,6 +82,7 @@ def load_config(json_file):
     except Exception as e:
         print(f"Error loading configuration: {e}")
     return data
+
 
 # Function to get Binance server time
 def get_binance_server_time():
@@ -121,26 +150,14 @@ def generate(data_grid):
     return data_grid
 
 
-def round_to_tick_size(price, tick_size):
-    tp = int(abs(math.log10(tick_size)))
-    return round(price, tp)
 
-# post a open position for 
+
+# post a limit order
 def post_order(client, data_grid, branch):
     order_data = data_grid[branch]
     new_order = []
-  
-    # Set up authentication
-    #binance_config_file = load_config('../credentials.json')  
-    #api_key = binance_config_file['api_key']
-    #api_secret = binance_config_file['api_secret']
-    
-    #client = Client(api_key, api_secret)
-    
-    
+   
     for order in order_data:
-        prc = round_to_tick_size(order['g_price'], data_grid['tick_size'])
-
         response = client.futures_create_order(
             symbol = data_grid['token_pair'].upper(),
             side = 'BUY' if data_grid['grid_side'] == 'LONG' else 'SELL',
@@ -156,5 +173,43 @@ def post_order(client, data_grid, branch):
     
         # must add the result to grid
     return new_order
+
+
+# post stop loss order
+def post_stop_loss_order(client, data_grid):
+    order = data_grid['sl_order'][0]
+    new_order = []
+    
+    symbol = data_grid['token_pair'].upper()
+    type = 'STOP_MARKET'
+    side = 'BUY' if data_grid['grid_side'] == 'LONG' else 'SELL'
+    stopPrice = str(round_to_tick_size(order['g_price'], data_grid['tick_size']))  # Ensure price is rounded correctly
+    closePosition = True  # Closes entire position
+    positionSide = data_grid['grid_side']  # LONG or SHORT
+    timeInForce = 'GTC'  # Good-Till-Canceled (optional)
+    
+    # Set up authentication
+    binance_config_file = load_config('../credentials.json')  
+    api_key = binance_config_file['api_key']
+    api_secret = binance_config_file['api_secret']
+    
+    client = Client(api_key, api_secret)
+    
+    response = client.futures_create_order(
+        symbol=data_grid['token_pair'].upper(),
+        type='STOP_MARKET',
+        side='BUY' if data_grid['grid_side'] == 'LONG' else 'SELL',
+        stopPrice=str(round_to_tick_size(order['g_price'], data_grid['tick_size'])),  # Ensure price is rounded correctly
+        #closePosition=True,  # Closes entire position
+        quantity = order['g_quantity'],
+        positionSide=data_grid['grid_side'],  # LONG or SHORT
+        timeInForce='GTC'  # Good-Till-Canceled (optional)
+    )
+    
+    print(str(order['g_price']) + " | " + str(order['g_quantity']) + " | " + str(order['g_cost']) + " | " + str(response['orderId']))
+    new_order.append(order | response)
+    return new_order
+
+
 
 

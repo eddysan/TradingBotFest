@@ -1,12 +1,10 @@
 from functions import *
 from binance.client import Client
 
-#import numpy as np
-#import json
-#from binance.client import Client
-#import requests
+# status for each instance of bot
+status = 'ORDER'
 
-
+# load default config from json
 data_grid = load_config('config.json')
 
 # Set up authentication
@@ -16,28 +14,11 @@ api_secret = binance_config_file['api_secret']
 
 client = Client(api_key, api_secret)
 
+# getting account balance from the wallet and set compound amount to 10% of the account
+data_grid['sl_compound'] = round(float(get_account_balance(client)) * 0.10, 2)
 
-# getting account balance
-account_balance = get_account_balance(client)
-sl_compound = round(float(account_balance) * 0.10, 2)
-
-# try input and apply default values
-data_grid['token_pair'] = input("Token Pair (BTCUSDT): ").upper() + "USDT"
-data_grid['grid_side'] = str(input("Grid Side (long): ")).upper() or 'LONG'
-data_grid['grid_distance'] = float(input("Grid Distance (2%): ") or 2) / 100
-data_grid['token_increment'] = float(input("Token Increment (40%): ") or 40) / 100
-data_grid['sl_amount'] = float(input("Stop Loss Amount " + "(" + str(sl_compound) + "USDT):") or sl_compound)
-data_grid['entry_price'] = float(input("Entry Price: ") or 0.00000)
-
-# get precition on decimals for token pair
-data_grid['price_decimal'], data_grid['quantity_decimal'], data_grid['tick_size'] = get_quantity_precision(client, data_grid)
-
-
-# if compound is activated is not neccesary entry token
-if data_grid['sl_amount'] != sl_compound:    
-    data_grid['entry_quantity'] = float(input("Entry Token: ") or 0)
-else:
-    data_grid['entry_quantity'] = round(sl_compound / data_grid['entry_price'], data_grid['quantity_decimal'])
+# fills external data from terminal
+data_grid = get_external_data(client, data_grid)
 
 
 # default variables to dev
@@ -60,4 +41,6 @@ data_grid = generate(data_grid)
 
 data_grid['body_order'] = post_order(client, data_grid,'body_order')
 #print(data_grid)
+
+#data_grid['sl_order'] = post_stop_loss_order(client, data_grid)
 
