@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-import numpy as np
+import uuid
 import json
 from binance.client import Client
 import time
 import math
+
 
 # prompt to get data
 def get_external_data(data_grid):    
@@ -62,6 +60,7 @@ class LUGrid:
         # initiate client connection for entire operations on this class
         self.client = get_connection()
         self.get_quantity_precision()
+        self.operation_code = '2410071010ADAUSDT'
         
     
     
@@ -108,13 +107,14 @@ class LUGrid:
         self.grid_distance = round(data_grid['grid_distance'], 2)  # distance between lines in grid, by default 2% then 0.02
         self.quantity_increment = round(data_grid['quantity_increment'], 2) #increment for token quantity, by default 40%
         self.stop_loss_amount = round(data_grid['sl_amount'], 2) #amount to lose if stop loss is activated
+        self.origin_entry_quantity = round(data_grid['entry_quantity'], self.quantity_precision) # original entry quantity as pivot to unload accumulated quantity
         
         self.entry_line = {"entry": "IN", 
                            "side": 'BUY' if self.side.upper() == 'LONG' else 'SELL',
                            "position_side": self.side.upper(),
                            "price": self.round_to_tick_size(data_grid['entry_price']), 
                            "quantity": round(data_grid['entry_quantity'], self.quantity_precision), 
-                           "cost":  round(data_grid['entry_price'] * data_grid['entry_quantity'], 2)
+                           "cost": round(data_grid['entry_price'] * data_grid['entry_quantity'], 2),
                            }
         self.take_profit_line = {"entry": "TP",
                                  "side": 'SELL' if self.side == 'LONG' else 'BUY', #if the operation is LONG then the TP should be SELL and viceversa
@@ -124,11 +124,13 @@ class LUGrid:
                                  "quantity": 0.00, 
                                  "cost": 0.00
                                  }        
-        self.unload_line = {"entry": "UL", 
-                            "distance": data_grid['ul_distance'], 
+        self.unload_line = {"entry": "UL",
+                            "side": 'SELL' if self.side == 'LONG' else 'BUY', # limit order to unload plus quantity of tokens
+                            "position_side": self.side.upper(),
+                            "distance": data_grid['ul_distance'], # distance to unload
                             "price": 0.00, 
                             "quantity": 0.00, 
-                            "cost": 0.00
+                            "cost": 0.00,
                             }
         self.grid_body = []
         self.average_line = {}
@@ -139,7 +141,7 @@ class LUGrid:
                                "distance": 0.00, #stop loss percentage distance
                                "price": 0.00, 
                                "quantity": 0.00, 
-                               "cost": 0.00
+                               "cost": 0.00,
                                }
     
     # generate the entire grid
@@ -186,7 +188,7 @@ class LUGrid:
                                    "position_side": self.side.upper(),
                                    "price" : self.round_to_tick_size(new_price), 
                                    "quantity" : round(new_quantity, self.quantity_precision), 
-                                   "cost" : round(new_price * new_quantity, 2)
+                                   "cost" : round(new_price * new_quantity, 2),
                                    })
             
             # calculate the average price and accumulated quantity if the position is taken
@@ -220,6 +222,8 @@ class LUGrid:
             self.unload_line['price'] = self.round_to_tick_size( self.entry_line['price'] * (1 + self.unload_line['distance']) )
         else:
             self.unload_line['price'] = self.round_to_tick_size( self.entry_line['price'] * (1 - self.unload_line['distance']) )
+        
+        self.unload_line['quantity'] = round(self.entry_line['quantity'] - self.origin_entry_quantity, self.quantity_precision)
         return None
     
     
@@ -235,10 +239,16 @@ class LUGrid:
                     timeInForce = 'GTC',
                     positionSide = self.entry_line['position_side'],
                     price = self.entry_line['price'],
-                    quantity = self.entry_line['quantity']
+                    quantity = self.entry_line['quantity'],
+                    newClientOrderId = "IN" + self.operation_code + str(uuid.uuid4())[:5]
                     )
+                
+                self.entry_line['order_id'] = response['orderId']
+                self.entry_line['status'] = response['status']
+                self.entry_line['client_order_id'] = response['clientOrderId']
+                
                 print(f"{self.entry_line['entry']} | {self.entry_line['price']} | "
-                  f"{self.entry_line['quantity']} | {self.entry_line['cost']} --> ok")
+                  f"{self.entry_line['quantity']} | {self.entry_line['cost']}  ✔️")
             else:
                 print("Error: entry_line missing required fields.")
         except Exception as e:
@@ -258,10 +268,14 @@ class LUGrid:
                     timeInForce = 'GTC',
                     positionSide = self.grid_body[i]['position_side'],
                     price = self.grid_body[i]['price'],  
-                    quantity = self.grid_body[i]['quantity'] 
+                    quantity = self.grid_body[i]['quantity'],
+                    newClientOrderId = "GD" + self.operation_code + str(uuid.uuid4())[:5]
                     )
+                self.grid_body[i]['order_id'] = response['orderId']
+                self.grid_body[i]['status'] = response['status']
+                self.grid_body[i]['client_order_id'] = response['clientOrderId']
                 
-                print(f"{self.grid_body[i]['entry']} | {self.grid_body[i]['price']} | {self.grid_body[i]['quantity']} | {self.grid_body[i]['cost']} --> ok")
+                print(f"{self.grid_body[i]['entry']} | {self.grid_body[i]['price']} | {self.grid_body[i]['quantity']} | {self.grid_body[i]['cost']}  ✔️")
                 
         except KeyError as e:
             print(f"Missing key in order data: {e}")
@@ -278,10 +292,15 @@ class LUGrid:
                     positionSide = self.stop_loss_line['position_side'],
                     type = 'STOP_MARKET',
                     stopPrice = self.stop_loss_line['price'],
-                    closePosition = True
+                    closePosition = True,
+                    newClientOrderId = "SL" + self.operation_code + str(uuid.uuid4())[:5]
                     )
-            print(f"{self.stop_loss_line['entry']}(self.stop_loss_line['distance']%)  | {self.stop_loss_line['price']} | "
-                  f"{self.stop_loss_line['quantity']} | {self.stop_loss_line['cost']} --> ok")
+            self.stop_loss_line['order_id'] = response['orderId']
+            self.stop_loss_line['status'] = response['status']
+            self.stop_loss_line['client_order_id'] = response['clientOrderId']
+            
+            print(f"{self.stop_loss_line['entry']}({self.stop_loss_line['distance']}%)  | {self.stop_loss_line['price']} | "
+                  f"{self.stop_loss_line['quantity']} | {self.stop_loss_line['cost']}  ✔️")
         except Exception as e:
             print(f"Error placing order: {e}")        
         
@@ -297,16 +316,43 @@ class LUGrid:
                     positionSide = self.take_profit_line['position_side'],
                     type = 'TAKE_PROFIT_MARKET',
                     stopPrice = self.take_profit_line['price'],
-                    closePosition = True
+                    closePosition = True,
+                    newClientOrderId = "TP" + self.operation_code + str(uuid.uuid4())[:5]
                     )
-            print(f"{self.take_profit_line['entry']}(self.take_profit_line['distance']%)  | {self.take_profit_line['price']} | "
-                  f"{self.take_profit_line['quantity']} | {self.take_profit_line['cost']} --> ok")
+            self.take_profit_line['order_id'] = response['orderId']
+            self.take_profit_line['status'] = response['status']
+            self.take_profit_line['client_order_id'] = response['clientOrderId']
+            
+            print(f"{self.take_profit_line['entry']}({self.take_profit_line['distance']}%)  | {self.take_profit_line['price']} | "
+                  f"{self.take_profit_line['quantity']} | {self.take_profit_line['cost']}  ✔️")
         except Exception as e:
             print(f"Error placing order: {e}")        
         
         return None
 
-
+    # post a limit order for grid body
+    def post_ul_order(self):
+        try:
+            response = self.client.futures_create_order(
+                    symbol = self.symbol.upper(),
+                    side = self.unload_line['side'],
+                    type = 'LIMIT',
+                    timeInForce = 'GTC',
+                    positionSide = self.unload_line['position_side'],
+                    price = self.unload_line['price'],  
+                    quantity = self.unload_line['quantity'],
+                    newClientOrderId = "UL" + self.operation_code + str(uuid.uuid4())[:5]
+                    )
+            self.unload_line['order_id'] = response['orderId']
+            self.unload_line['status'] = response['status']
+            self.unload_line['client_order_id'] = response['clientOrderId']
+                
+            print(f"{self.unload_line['entry']} | {self.unload_line['price']} | {self.unload_line['quantity']} | {self.unload_line['cost']}  ✔️")
+                
+        except KeyError as e:
+            print(f"Missing key in order data: {e}")
+        except Exception as e:
+            print(f"Error posting order: {e}")
 
     
     
