@@ -1,44 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import json
 from binance.client import Client
 from binance.streams import BinanceSocketManager
 from websocket import WebSocketApp
 import time
 from model import *
-
-# if compound is true then quantity will be taken as 10% of entire capital
-data_grid = {"compound": False,
-             "tp_distance": 0.05,
-             "ul_distance": 0.005
-    }
-
-
-#data_grid = get_external_data(data_grid)
-
-# default variables to dev
-data_grid['symbol'] = 'ADAUSDT'
-data_grid['grid_side'] = 'LONG'
-data_grid['grid_distance'] = 0.02
-data_grid['quantity_increment'] = 0.40
-data_grid['sl_amount'] = 10
-data_grid['entry_price'] = 0.345
-data_grid['entry_quantity'] = 28
-
-grid = LUGrid(data_grid)
-
-grid.load_data(data_grid)
-grid.generate_grid()
-#grid.generate_unload()
-
-grid.post_entry_order()
-grid.post_grid_order()
-grid.post_sl_order()
-grid.post_tp_order()
-#grid.print_grid()
-
-client = get_connection()
-
 
 ws = None  # Global variable for WebSocket connection
 
@@ -50,10 +16,15 @@ def on_message(ws, message):
         symbol = message['o']['s']  # Symbol (e.g., XRPUSDT)
         order_status = message['o']['X']  # Order status (e.g., FILLED, NEW)
         order_id = message['o']['i']  # Order ID
-        kind_order = str(message['o']['c'])[:2] #getting kind of operation on grid (GD, TP, SL, IN, UL etc)
+        
         
         # Filter for SYMBOL pair and when order is filled
         if symbol == grid.symbol and order_status == 'FILLED':
+            kind_order = str(message['o']['c'])[:2] #getting kind of operation on grid (GD, TP, SL, IN, UL etc)
+            operation_code = str(message['o']['c']).split('_')[1] # getting operation code
+        
+            grid = LUGrid(operation_code)
+            
             
             match kind_order:
                 case "IN": #the event is entry

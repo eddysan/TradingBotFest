@@ -1,0 +1,141 @@
+{
+    "operation_code": "2410071942ADAUSDTLONG",
+    "symbol": "ADAUSDT",
+    "side": "LONG",
+    "grid_distance": 0.02,
+    "quantity_increment": 0.4,
+    "stop_loss_amount": 10.0,
+    "price_precision": 5,
+    "quantity_precision": 0,
+    "tick_size": 0.0001,
+    "step_size": 1.0,
+    "compound": {
+        "enabled": false,
+        "risk": 0.1,
+        "quantity": 0
+    },
+    "entry_line": {
+        "entry": "IN",
+        "side": "BUY",
+        "position_side": "LONG",
+        "price": 0.345,
+        "quantity": 29.0,
+        "entry_quantity": 29.0,
+        "cost": 0,
+        "order_id": 44731829987,
+        "satus": "NEW",
+        "client_order_id": "IN_2410071942ADAUSDTLONG_a0d1a",
+        "status": "NEW"
+    },
+    "take_profit_line": {
+        "entry": "TP",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.05,
+        "price": 0.3622,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 44731830157,
+        "satus": "NEW",
+        "client_order_id": "TP_2410071942ADAUSDTLONG_b66ee",
+        "status": "NEW"
+    },
+    "unload_line": {
+        "entry": "UL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.005,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "satus": "NEW",
+        "client_order_id": ""
+    },
+    "stop_loss_line": {
+        "entry": "SL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.1235,
+        "price": 0.3024,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 44731830146,
+        "satus": "NEW",
+        "client_order_id": "SL_2410071942ADAUSDTLONG_168c0",
+        "status": "NEW"
+    },
+    "average_line": {
+        "price": 0.3169,
+        "quantity": 692.0,
+        "sl_distance": 4.560071647845731
+    },
+    "grid_body": [
+        {
+            "entry": 1,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.3381,
+            "quantity": 41.0,
+            "cost": 13.73,
+            "order_id": 44731830010,
+            "status": "NEW",
+            "client_order_id": "GD_2410071942ADAUSDTLONG_cafda"
+        },
+        {
+            "entry": 2,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.3313,
+            "quantity": 57.0,
+            "cost": 18.83,
+            "order_id": 44731830051,
+            "status": "NEW",
+            "client_order_id": "GD_2410071942ADAUSDTLONG_e5d2b"
+        },
+        {
+            "entry": 3,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.3247,
+            "quantity": 80.0,
+            "cost": 25.84,
+            "order_id": 44731830083,
+            "status": "NEW",
+            "client_order_id": "GD_2410071942ADAUSDTLONG_f2d7f"
+        },
+        {
+            "entry": 4,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.3182,
+            "quantity": 111.0,
+            "cost": 35.45,
+            "order_id": 44731830093,
+            "status": "NEW",
+            "client_order_id": "GD_2410071942ADAUSDTLONG_8e737"
+        },
+        {
+            "entry": 5,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.3119,
+            "quantity": 156.0,
+            "cost": 48.64,
+            "order_id": 44731830108,
+            "status": "NEW",
+            "client_order_id": "GD_2410071942ADAUSDTLONG_4b919"
+        },
+        {
+            "entry": 6,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.3056,
+            "quantity": 218.0,
+            "cost": 66.73,
+            "order_id": 44731830127,
+            "status": "NEW",
+            "client_order_id": "GD_2410071942ADAUSDTLONG_839c3"
+        }
+    ]
+}

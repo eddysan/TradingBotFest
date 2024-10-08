@@ -1,16 +1,109 @@
 {
-    "token_pair":"BTCUSDT",
-    "grid_side": "LONG",
-    "grid_distance": 0.02,
-    "quantity_increment": 0.4,
-    "sl_amount": 10,
-    "entry_price": 0,
-    "entry_quantity": 0,
-    "price_decimal": 0,
-    "quantity_decimal": 0,
-    "tick_size": 0,
-    "sl_compound": 0,
-    "entry_order": [],
-    "body_order": [],
-    "sl_order": []
+  "operation_code": "2410071120",
+  "symbol": "BTCUSDT",
+  "side": "LONG",
+  "grid_distance": 0.02,
+  "quantity_increment": 0.4,
+  "stop_loss_amount": 10.0,
+  "price_precision": 0,
+  "quantity_precision": 0,
+  "tick_size": 0,
+  "step_size": 0,
+  "compound": {
+      "enabled": false,
+      "risk": 0.10,
+      "quantity": 0        
+  },
+  "entry_line": {
+    "entry": "IN",
+    "side": "BUY",
+    "position_side": "LONG",
+    "price": 0,
+    "quantity": 0,
+    "cost": 0,
+    "order_id": 0,
+    "status": "NEW",
+    "client_order_id": ""
+  },
+  "take_profit_line": {
+    "entry": "TP",
+    "side": "SELL",
+    "position_side": "LONG",
+    "distance": 0.05,
+    "price": 0,
+    "quantity": 0,
+    "cost": 0,
+    "order_id": 0,
+    "status": "NEW",
+    "client_order_id": ""
+  },
+  "unload_line": {
+    "entry": "UL",
+    "side": "SELL",
+    "position_side": "LONG",
+    "distance": 0.005,
+    "price": 0,
+    "quantity": 0,
+    "cost": 0,
+    "order_id": 0,
+    "status": "NEW",
+    "client_order_id": ""
+  },
+  "stop_loss_line": {
+    "entry": "SL",
+    "side": "SELL",
+    "position_side": "LONG",
+    "distance": 0,
+    "price": 0,
+    "quantity": 0,
+    "cost": 0,
+    "order_id": 0,
+    "status": "NEW",
+    "client_order_id": ""
+  },
+  "average_line": {
+    "price": 0,
+    "quantity": 0,
+    "sl_distance": 0
+  },
+    "current_line": {
+      "price": 0,
+      "quantity": 0,
+      "position_side": "LONG"
+    },
+  "grid_body": [
+    {
+      "entry": 1,
+      "side": "BUY",
+      "position_side": "LONG",
+      "price": 0,
+      "quantity": 0,
+      "cost": 0,
+      "order_id": 0,
+      "status": "NEW",
+      "client_order_id": ""
+    },
+    {
+      "entry": 2,
+      "side": "BUY",
+      "position_side": "LONG",
+      "price": 0,
+      "quantity": 0,
+      "cost": 0,
+      "order_id": 0,
+      "status": "NEW",
+      "client_order_id": "GD2410071120hfuwe"
+    },
+    {
+      "entry": 3,
+      "side": "BUY",
+      "position_side": "LONG",
+      "price": 0,
+      "quantity": 0,
+      "cost": 0,
+      "order_id": 0,
+      "status": "NEW",
+      "client_order_id": "GD2410071120hfuwe"
+    }
+  ]
 }

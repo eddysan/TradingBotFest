@@ -1,3 +1,5 @@
+from datetime import datetime
+import os
 import uuid
 import json
 from binance.client import Client
@@ -5,20 +7,145 @@ import time
 import math
 
 
-# prompt to get data
-def get_external_data(data_grid):    
+# generate op code
+def gen_date_code():
+    # Get the current date and time
+    now = datetime.now()
 
-    # try input and apply default values
-    data_grid['symbol'] = input("Token Pair (BTCUSDT): ").upper() + "USDT"
-    data_grid['grid_side'] = str(input("Grid Side (long): ")).upper() or 'LONG'
-    data_grid['grid_distance'] = float(input("Grid Distance (2%): ") or 2) / 100
-    data_grid['quantity_increment'] = float(input("Token Increment (40%): ") or 40) / 100
-    data_grid['sl_amount'] = float(input("Stop Loss Amount ($10): ") or 10.0)
-    data_grid['entry_price'] = float(input("Entry Price: ") or 0.00000)
-    data_grid['entry_quantity'] = float(input("Entry Quantity ($10): ") or 0.00000)
-    data_grid['entry_quantity'] = data_grid['entry_quantity'] / data_grid['entry_price']
+    # Format the date and time as "YYYYMMDDHHmm"
+    formatted_code = now.strftime("%y%m%d%H%M")
 
-    return data_grid
+    return formatted_code
+
+# read data grid in order to upload config
+def read_data_grid(op_code):
+    try:
+        # Load datagrid file
+        cfile = "ops/" + str(op_code) + ".json"
+        with open(cfile, 'r') as file:
+            config_file = json.load(file)
+        return config_file
+    
+    except FileNotFoundError:
+        print(f"Error: {config_file} file not found. Please check the file path.")
+    except KeyError:
+        print("Error: Invalid format in {config_file}. ")
+    
+    
+# Write data grid to operations folder
+def write_data_grid(op_code, data_grid):
+    # if directory exists
+    os.makedirs('ops', exist_ok=True)
+
+    cfile = f"ops/{op_code}.json"
+
+    # Writing the JSON data to the file
+    try:
+        with open(cfile, 'w') as file:
+            json.dump(data_grid, file, indent=4)
+    except IOError as e:
+        print(f"Error writing file {cfile}: {e}")
+
+
+
+def input_data():
+    # Helper to safely get user input with default fallback
+    def get_input(prompt, default_value=None, cast_func=str):
+        user_input = input(prompt).strip()
+        return cast_func(user_input) if user_input else default_value
+
+    # Reading default config file
+    try:
+        with open('config.json', 'r') as file:
+            config_file = json.load(file)
+    except (FileNotFoundError, KeyError):
+        print("Error: Invalid config.json file or not found. Please check the file path and format.")
+        return
+    
+    client = get_connection()  # Open Binance connection
+
+    # INPUT symbol
+    config_file['symbol'] = get_input("Token Pair like (BTC): ", "BTC").upper() + "USDT"
+
+    # Getting precisions for the symbol
+    info = client.futures_exchange_info()['symbols']
+    symbol_info = next((x for x in info if x['symbol'] == config_file['symbol']), None)
+    
+    # Retrieve precision filters
+    for f in symbol_info['filters']:
+        if f['filterType'] == 'LOT_SIZE':
+            config_file['step_size'] = float(f['stepSize'])
+        elif f['filterType'] == 'PRICE_FILTER':
+            config_file['tick_size'] = float(f['tickSize'])
+    
+    config_file['price_precision'] = symbol_info['pricePrecision']
+    config_file['quantity_precision'] = symbol_info['quantityPrecision']
+
+    # INPUT side (default to LONG)
+    config_file['side'] = get_input("Grid Side (LONG): ", "LONG", str).upper()
+
+    # INPUT entry price
+    tick_increment = int(abs(math.log10(config_file['tick_size'])))
+    config_file['entry_line']['price'] = round(get_input("Entry Price: ", 0.0, float), tick_increment)
+
+    # INPUT grid distance
+    config_file['grid_distance'] = get_input("Grid Distance (2%): ", 2.0, float) / 100
+
+    # INPUT token increment
+    config_file['quantity_increment'] = get_input("Token Increment (40%): ", 40.0, float) / 100
+
+    # Compound calculation
+    if config_file['compound']['enabled']:
+        # Get wallet balance
+        usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
+        config_file['compound']['quantity'] = round(float(usdt_balance) * config_file['compound']['risk'], 2)
+        config_file['stop_loss_amount'] = config_file['compound']['quantity']
+    else:
+        # INPUT stop loss amount
+        config_file['stop_loss_amount'] = get_input("Stop Loss Amount ($10): ", 10.0, float)
+    
+    # INPUT quantity or compound quantity
+    quantity = config_file['compound']['quantity'] if config_file['compound']['enabled'] else get_input("Entry Quantity ($10): ", 0.0, float)
+    config_file['entry_line']['quantity'] = round(quantity / config_file['entry_line']['price'], config_file['quantity_precision'])
+
+    # saving grid body    
+    config_file['grid_body'] = []
+
+
+    # processing entry line
+    config_file['entry_line']["side"] = 'BUY' if config_file['side'] == 'LONG' else 'SELL'
+    config_file['entry_line']["position_side"] = config_file['side']
+    config_file['entry_line']["cost"] = round(config_file['entry_line']["price"] * config_file['entry_line']["quantity"], 2)
+                       
+    # processing take profit
+    config_file['take_profit_line']['side'] = 'SELL' if config_file['side'] == 'LONG' else 'BUY' #if the operation is LONG then the TP should be SELL and viceversa
+    config_file['take_profit_line']['position_side'] = config_file['side'] #mandatory for hedge mode
+    
+    # unload
+    config_file['unload_line']['side'] = 'SELL' if config_file['side'] == 'LONG' else 'BUY' # limit order to unload plus quantity of tokens
+    config_file['unload_line']['position_side'] = config_file['side']
+    
+    # stop loss
+    config_file['stop_loss_line']['side'] = 'SELL' if config_file['side'] == 'LONG' else 'BUY' #if the operation is LONG then the SL should be SELL
+    config_file['stop_loss_line']['position_side'] = config_file['side']
+    
+    # current line is the pivot that store que current price in operation, this will change if the grid has chaged
+    config_file['current_line']['price'] = config_file['entry_line']['price']
+    config_file['current_line']['quantity'] = config_file['entry_line']['quantity']
+    config_file['current_line']['position_side'] = config_file['entry_line']['position_side']
+
+    # Generate operation code
+    operation_code = gen_date_code() + config_file['symbol'] + config_file['side']
+    config_file['operation_code'] = operation_code
+
+    # Write config file to operations folder
+    os.makedirs('ops', exist_ok=True)
+    xfile = f"ops/{operation_code}.json"
+    with open(xfile, 'w') as file:
+        json.dump(config_file, file, indent=4)  # Pretty-print JSON
+
+    return operation_code
+
 
 
 # Define get_connection outside the class
@@ -47,208 +174,125 @@ def get_connection():
 
 class LUGrid:
     
-    def __init__(self, data_grid):
+    def __init__(self, operation_code):
+        
+        self.data_grid = read_data_grid(operation_code) # reading configuration file
+        
         # initial default values
-        self.symbol = data_grid['symbol']
-        self.compound = data_grid['compound']
-        self.unload_distance = data_grid['ul_distance']
-        self.price_precision = 0 # number of decimals places after point
-        self.quantity_precision = 0 # number of decimals places after point
-        self.tick_size = 0 #increment between points in price, setted by binance
-        self.step_size = 0
+        self.operation_code = operation_code
+
         
-        # initiate client connection for entire operations on this class
+        # new connection to binance
         self.client = get_connection()
-        self.get_quantity_precision()
-        self.operation_code = '2410071010ADAUSDT'
+
+    def save_config(self):
+                
+        write_data_grid(self.operation_code, self.data_grid)
         
-    
     
     # round price to increment accepted by binance
     def round_to_tick_size(self, price):
-        tick_increment = int(abs(math.log10(self.tick_size)))
+        tick_increment = int(abs(math.log10(self.data_grid['tick_size'])))
         return round(price, tick_increment)
     
-    # get decimal precision for price and quantity 
-    def get_quantity_precision(self):    
-        while True:
-            try:
-                info = self.client.futures_exchange_info()['symbols']
-                break  # Exit loop if successful
-            except Exception as error:
-                print(error)
-                with open("log.txt", "a") as archivo_e:
-                    mensaje_e = time.strftime('%d-%m-%Y %H:%M:%S', time.localtime()) + ' ERROR: ' + str(error) + "\n"
-                    archivo_e.write(mensaje_e)
-                time.sleep(2)  # Retry after delay
-
-        # Find the symbol's info using filter() or next() for better performance
-        symbol_info = next((x for x in info if x['symbol'] == self.symbol), None)
-    
-        if not symbol_info:
-            return None  # Return None if symbol is not found
-    
-        for f in symbol_info['filters']:
-            if f['filterType'] == 'LOT_SIZE':
-                self.step_size = float(f['stepSize'])
-            if f['filterType'] == 'PRICE_FILTER':
-                self.tick_size = float(f['tickSize'])
-        
-        self.price_precision = symbol_info['pricePrecision']
-        self.quantity_precision = symbol_info['quantityPrecision']
-        
-        return None
-    
-    
-    # load data as json in order to set default config
-    def load_data(self,data_grid):
-        self.symbol = data_grid['symbol'].upper() # symbol pair like BTCUSDT
-        self.side = data_grid['grid_side'].upper() # side LONG or SHORT
-        self.grid_distance = round(data_grid['grid_distance'], 2)  # distance between lines in grid, by default 2% then 0.02
-        self.quantity_increment = round(data_grid['quantity_increment'], 2) #increment for token quantity, by default 40%
-        self.stop_loss_amount = round(data_grid['sl_amount'], 2) #amount to lose if stop loss is activated
-        self.origin_entry_quantity = round(data_grid['entry_quantity'], self.quantity_precision) # original entry quantity as pivot to unload accumulated quantity
-        
-        self.entry_line = {"entry": "IN", 
-                           "side": 'BUY' if self.side.upper() == 'LONG' else 'SELL',
-                           "position_side": self.side.upper(),
-                           "price": self.round_to_tick_size(data_grid['entry_price']), 
-                           "quantity": round(data_grid['entry_quantity'], self.quantity_precision), 
-                           "cost": round(data_grid['entry_price'] * data_grid['entry_quantity'], 2),
-                           }
-        self.take_profit_line = {"entry": "TP",
-                                 "side": 'SELL' if self.side == 'LONG' else 'BUY', #if the operation is LONG then the TP should be SELL and viceversa
-                                 "position_side": self.side.upper(), #mandatory for hedge mode
-                                 "distance": data_grid['tp_distance'], #percentage distance for take profit
-                                 "price": 0.00, 
-                                 "quantity": 0.00, 
-                                 "cost": 0.00
-                                 }        
-        self.unload_line = {"entry": "UL",
-                            "side": 'SELL' if self.side == 'LONG' else 'BUY', # limit order to unload plus quantity of tokens
-                            "position_side": self.side.upper(),
-                            "distance": data_grid['ul_distance'], # distance to unload
-                            "price": 0.00, 
-                            "quantity": 0.00, 
-                            "cost": 0.00,
-                            }
-        self.grid_body = []
-        self.average_line = {}
-
-        self.stop_loss_line = {"entry": "SL", 
-                               "side": 'SELL' if self.side == 'LONG' else 'BUY', #if the operation is LONG then the SL should be SELL
-                               "position_side": self.side.upper(), #mandatory for hedge mode
-                               "distance": 0.00, #stop loss percentage distance
-                               "price": 0.00, 
-                               "quantity": 0.00, 
-                               "cost": 0.00,
-                               }
     
     # generate the entire grid
     def generate_grid(self):
-        current_price = self.entry_line["price"]
-        current_quantity = self.entry_line["quantity"]
+        current_price = self.data_grid['entry_line']["price"]
+        current_quantity = self.data_grid['entry_line']["quantity"]
         
-        self.average_line['price'] = self.entry_line["price"]
-        self.average_line['quantity'] = self.entry_line["quantity"]
+        self.data_grid['average_line']['price'] = self.data_grid['entry_line']["price"]
+        self.data_grid['average_line']['quantity'] = self.data_grid['entry_line']["quantity"]
 
         # set stop loss taking the first point, entry line
-        self.average_line['sl_distance'] = (self.stop_loss_amount * 100) / (self.average_line['price'] *  self.average_line['quantity'])
+        self.data_grid['average_line']['sl_distance'] = (self.data_grid['stop_loss_amount'] * 100) / (self.data_grid['average_line']['price'] *  self.data_grid['average_line']['quantity'])
         
-        if self.side == 'LONG':
-            self.stop_loss_line['price'] = self.round_to_tick_size( self.average_line['price'] - (self.average_line['price'] * self.average_line['sl_distance'] / 100) )
-            self.stop_loss_line['distance'] = round((self.entry_line['price'] - self.stop_loss_line['price']) / self.entry_line['price'],4)
+        if self.data_grid['side'] == 'LONG':
+            self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] - (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
+            self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['entry_line']['price'] - self.data_grid['stop_loss_line']['price']) / self.data_grid['entry_line']['price'],4)
             
-        if self.side == 'SHORT':
-                self.stop_loss_line['price'] = self.round_to_tick_size( self.average_line['price'] + (self.average_line['price'] * self.average_line['sl_distance'] / 100) )
-                self.stop_loss_line['distance'] = round((self.stop_loss_line['price'] - self.entry_line['price']) / self.entry_line['price'],4)
+        if self.data_grid['side'] == 'SHORT':
+                self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] + (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
+                self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['stop_loss_line']['price'] - self.data_grid['entry_line']['price']) / self.data_grid['entry_line']['price'],4)
 
         while True:
             
             # increment as grid distance the price and quantity
-            if self.side == 'LONG':
-                new_price = current_price * (1 - self.grid_distance)
+            if self.data_grid['side'] == 'LONG':
+                new_price = current_price * (1 - self.data_grid['grid_distance'])
             
-            if self.side == 'SHORT':
-                new_price = current_price * (1 + self.grid_distance)
+            if self.data_grid['side'] == 'SHORT':
+                new_price = current_price * (1 + self.data_grid['grid_distance'])
             
-            new_quantity = current_quantity * (1 + self.quantity_increment)
+            new_quantity = current_quantity * (1 + self.data_grid['quantity_increment'])
             
             # control if the new price is greater or lower than stop loss price, in order to stop generation of posts
-            if self.side == 'LONG':
-                if self.stop_loss_line['price'] > new_price:
+            if self.data_grid['side'] == 'LONG':
+                if self.data_grid['stop_loss_line']['price'] > new_price:
                     break
                 
-            if self.side == 'SHORT':
-                if new_price > self.stop_loss_line['price']:
+            if self.data_grid['side'] == 'SHORT':
+                if new_price > self.data_grid['stop_loss_line']['price']:
                     break
             
-            self.grid_body.append({"entry" : len(self.grid_body)+1,
-                                   "side": 'BUY' if self.side.upper() == 'LONG' else 'SELL',
-                                   "position_side": self.side.upper(),
+            self.data_grid['grid_body'].append({"entry" : len(self.data_grid['grid_body'])+1,
+                                   "side": 'BUY' if self.data_grid['side'].upper() == 'LONG' else 'SELL',
+                                   "position_side": self.data_grid['side'].upper(),
                                    "price" : self.round_to_tick_size(new_price), 
-                                   "quantity" : round(new_quantity, self.quantity_precision), 
+                                   "quantity" : round(new_quantity, self.data_grid['quantity_precision']), 
                                    "cost" : round(new_price * new_quantity, 2),
                                    })
             
             # calculate the average price and accumulated quantity if the position is taken
-            self.average_line['price'] = self.round_to_tick_size( ((self.average_line['price'] * self.average_line['quantity']) + (new_price * new_quantity)) / (self.average_line['quantity'] + new_quantity)) 
-            self.average_line['quantity'] = round(self.average_line['quantity'] + new_quantity, self.quantity_precision)
+            self.data_grid['average_line']['price'] = self.round_to_tick_size( ((self.data_grid['average_line']['price'] * self.data_grid['average_line']['quantity']) + (new_price * new_quantity)) / (self.data_grid['average_line']['quantity'] + new_quantity)) 
+            self.data_grid['average_line']['quantity'] = round(self.data_grid['average_line']['quantity'] + new_quantity, self.data_grid['quantity_precision'])
             
-            self.average_line['sl_distance'] = (self.stop_loss_amount * 100) / (self.average_line['price'] *  self.average_line['quantity'])
+            self.data_grid['average_line']['sl_distance'] = (self.data_grid['stop_loss_amount'] * 100) / (self.data_grid['average_line']['price'] *  self.data_grid['average_line']['quantity'])
             
-            if self.side == 'LONG':
-                self.stop_loss_line['price'] = self.round_to_tick_size( self.average_line['price'] - (self.average_line['price'] * self.average_line['sl_distance'] / 100) )
-                self.stop_loss_line['distance'] = round((self.entry_line['price'] - self.stop_loss_line['price']) / self.entry_line['price'],4)
+            if self.data_grid['side'] == 'LONG':
+                self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] - (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
+                self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['entry_line']['price'] - self.data_grid['stop_loss_line']['price']) / self.data_grid['entry_line']['price'],4)
             
-            if self.side == 'SHORT':
-                self.stop_loss_line['price'] = self.round_to_tick_size( self.average_line['price'] + (self.average_line['price'] * self.average_line['sl_distance'] / 100) )
-                self.stop_loss_line['distance'] = round((self.stop_loss_line['price'] - self.entry_line['price']) / self.entry_line['price'],4)
+            if self.data_grid['side'] == 'SHORT':
+                self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] + (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
+                self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['stop_loss_line']['price'] - self.data_grid['entry_line']['price']) / self.data_grid['entry_line']['price'],4)
 
             
             current_price = new_price
             current_quantity = new_quantity
         
         # generate TAKE PROFIT line
-        if self.side.upper() == 'LONG':
-            self.take_profit_line['price'] = self.round_to_tick_size( self.entry_line['price'] * (1 + self.take_profit_line['distance']) )
+        if self.data_grid['side'].upper() == 'LONG':
+            self.data_grid['take_profit_line']['price'] = self.round_to_tick_size( self.data_grid['entry_line']['price'] * (1 + self.data_grid['take_profit_line']['distance']) )
         else:
-            self.take_profit_line['price'] = self.round_to_tick_size( self.entry_line['price'] * (1 - self.take_profit_line['distance']) )
+            self.data_grid['take_profit_line']['price'] = self.round_to_tick_size( self.data_grid['entry_line']['price'] * (1 - self.data_grid['take_profit_line']['distance']) )
     
             
-    # generate unload point
-    def generate_unload(self):
-        if self.side.upper() == 'LONG':
-            self.unload_line['price'] = self.round_to_tick_size( self.entry_line['price'] * (1 + self.unload_line['distance']) )
-        else:
-            self.unload_line['price'] = self.round_to_tick_size( self.entry_line['price'] * (1 - self.unload_line['distance']) )
-        
-        self.unload_line['quantity'] = round(self.entry_line['quantity'] - self.origin_entry_quantity, self.quantity_precision)
-        return None
+    
     
     
     # post entry order
     def post_entry_order(self):
         try:
             # Ensuring entry_line contains necessary keys
-            if all(k in self.entry_line for k in ['price', 'quantity']):
+            if all(k in self.data_grid['entry_line'] for k in ['price', 'quantity']):
                 response = self.client.futures_create_order(
-                    symbol = self.symbol.upper(),
-                    side = self.entry_line['side'],
+                    symbol = self.data_grid['symbol'].upper(),
+                    side = self.data_grid['entry_line']['side'],
                     type = 'LIMIT',
                     timeInForce = 'GTC',
-                    positionSide = self.entry_line['position_side'],
-                    price = self.entry_line['price'],
-                    quantity = self.entry_line['quantity'],
-                    newClientOrderId = "IN" + self.operation_code + str(uuid.uuid4())[:5]
+                    positionSide = self.data_grid['entry_line']['position_side'],
+                    price = self.data_grid['entry_line']['price'],
+                    quantity = self.data_grid['entry_line']['quantity'],
+                    newClientOrderId = "IN" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
                     )
                 
-                self.entry_line['order_id'] = response['orderId']
-                self.entry_line['status'] = response['status']
-                self.entry_line['client_order_id'] = response['clientOrderId']
+                self.data_grid['entry_line']['order_id'] = response['orderId']
+                self.data_grid['entry_line']['status'] = response['status']
+                self.data_grid['entry_line']['client_order_id'] = response['clientOrderId']
                 
-                print(f"{self.entry_line['entry']} | {self.entry_line['price']} | "
-                  f"{self.entry_line['quantity']} | {self.entry_line['cost']}  ✔️")
+                print(f"{self.data_grid['entry_line']['entry']} | {self.data_grid['entry_line']['price']} | "
+                  f"{self.data_grid['entry_line']['quantity']} | {self.data_grid['entry_line']['cost']}  ✔️")
             else:
                 print("Error: entry_line missing required fields.")
         except Exception as e:
@@ -260,22 +304,22 @@ class LUGrid:
     # post a limit order for grid body
     def post_grid_order(self):
         try:
-            for i in range(len(self.grid_body)):
+            for i in range(len(self.data_grid['grid_body'])):
                 response = self.client.futures_create_order(
-                    symbol = self.symbol.upper(),
-                    side = self.grid_body[i]['side'],
+                    symbol = self.data_grid['symbol'].upper(),
+                    side = self.data_grid['grid_body'][i]['side'],
                     type = 'LIMIT',
                     timeInForce = 'GTC',
-                    positionSide = self.grid_body[i]['position_side'],
-                    price = self.grid_body[i]['price'],  
-                    quantity = self.grid_body[i]['quantity'],
-                    newClientOrderId = "GD" + self.operation_code + str(uuid.uuid4())[:5]
+                    positionSide = self.data_grid['grid_body'][i]['position_side'],
+                    price = self.data_grid['grid_body'][i]['price'],  
+                    quantity = self.data_grid['grid_body'][i]['quantity'],
+                    newClientOrderId = "GD" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
                     )
-                self.grid_body[i]['order_id'] = response['orderId']
-                self.grid_body[i]['status'] = response['status']
-                self.grid_body[i]['client_order_id'] = response['clientOrderId']
+                self.data_grid['grid_body'][i]['order_id'] = response['orderId']
+                self.data_grid['grid_body'][i]['status'] = response['status']
+                self.data_grid['grid_body'][i]['client_order_id'] = response['clientOrderId']
                 
-                print(f"{self.grid_body[i]['entry']} | {self.grid_body[i]['price']} | {self.grid_body[i]['quantity']} | {self.grid_body[i]['cost']}  ✔️")
+                print(f"{self.data_grid['grid_body'][i]['entry']} | {self.data_grid['grid_body'][i]['price']} | {self.data_grid['grid_body'][i]['quantity']} | {self.data_grid['grid_body'][i]['cost']}  ✔️")
                 
         except KeyError as e:
             print(f"Missing key in order data: {e}")
@@ -287,20 +331,20 @@ class LUGrid:
     def post_sl_order(self):
         try:
             response = self.client.futures_create_order(
-                    symbol = self.symbol.upper(),
-                    side = self.stop_loss_line['side'], #if the operation is LONG then the SL should be SELL
-                    positionSide = self.stop_loss_line['position_side'],
+                    symbol = self.data_grid['symbol'].upper(),
+                    side = self.data_grid['stop_loss_line']['side'], #if the operation is LONG then the SL should be SELL
+                    positionSide = self.data_grid['stop_loss_line']['position_side'],
                     type = 'STOP_MARKET',
-                    stopPrice = self.stop_loss_line['price'],
+                    stopPrice = self.data_grid['stop_loss_line']['price'],
                     closePosition = True,
-                    newClientOrderId = "SL" + self.operation_code + str(uuid.uuid4())[:5]
+                    newClientOrderId = "SL" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
                     )
-            self.stop_loss_line['order_id'] = response['orderId']
-            self.stop_loss_line['status'] = response['status']
-            self.stop_loss_line['client_order_id'] = response['clientOrderId']
+            self.data_grid['stop_loss_line']['order_id'] = response['orderId']
+            self.data_grid['stop_loss_line']['status'] = response['status']
+            self.data_grid['stop_loss_line']['client_order_id'] = response['clientOrderId']
             
-            print(f"{self.stop_loss_line['entry']}({self.stop_loss_line['distance']}%)  | {self.stop_loss_line['price']} | "
-                  f"{self.stop_loss_line['quantity']} | {self.stop_loss_line['cost']}  ✔️")
+            print(f"{self.data_grid['stop_loss_line']['entry']}({self.data_grid['stop_loss_line']['distance']}%)  | {self.data_grid['stop_loss_line']['price']} | "
+                  f"{self.data_grid['stop_loss_line']['quantity']} | {self.data_grid['stop_loss_line']['cost']}  ✔️")
         except Exception as e:
             print(f"Error placing order: {e}")        
         
@@ -311,43 +355,72 @@ class LUGrid:
     def post_tp_order(self):
         try:
             response = self.client.futures_create_order(
-                    symbol = self.symbol.upper(),
-                    side = self.take_profit_line['side'], #if the operation is LONG then the TP should be SELL
-                    positionSide = self.take_profit_line['position_side'],
+                    symbol = self.data_grid['symbol'].upper(),
+                    side = self.data_grid['take_profit_line']['side'], #if the operation is LONG then the TP should be SELL
+                    positionSide = self.data_grid['take_profit_line']['position_side'],
                     type = 'TAKE_PROFIT_MARKET',
-                    stopPrice = self.take_profit_line['price'],
+                    stopPrice = self.data_grid['take_profit_line']['price'],
                     closePosition = True,
-                    newClientOrderId = "TP" + self.operation_code + str(uuid.uuid4())[:5]
+                    newClientOrderId = "TP" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
                     )
-            self.take_profit_line['order_id'] = response['orderId']
-            self.take_profit_line['status'] = response['status']
-            self.take_profit_line['client_order_id'] = response['clientOrderId']
+            self.data_grid['take_profit_line']['order_id'] = response['orderId']
+            self.data_grid['take_profit_line']['status'] = response['status']
+            self.data_grid['take_profit_line']['client_order_id'] = response['clientOrderId']
             
-            print(f"{self.take_profit_line['entry']}({self.take_profit_line['distance']}%)  | {self.take_profit_line['price']} | "
-                  f"{self.take_profit_line['quantity']} | {self.take_profit_line['cost']}  ✔️")
+            print(f"{self.data_grid['take_profit_line']['entry']}({self.data_grid['take_profit_line']['distance']}%)  | {self.data_grid['take_profit_line']['price']} | "
+                  f"{self.data_grid['take_profit_line']['quantity']} | {self.data_grid['take_profit_line']['cost']}  ✔️")
         except Exception as e:
             print(f"Error placing order: {e}")        
         
         return None
-
+    
+    # generate unload point
+    def generate_unload(self):
+        if self.data_grid['side'].upper() == 'LONG':
+            self.data_grid['unload_line']['price'] = self.round_to_tick_size(self.data_grid['current_line']['price'] * (1 + self.data_grid['unload_line']['distance']) )
+        else:
+            self.data_grid['unload_line']['price'] = self.round_to_tick_size( self.data_grid['current_line']['price'] * (1 - self.data_grid['unload_line']['distance']) )
+        
+        self.data_grid['unload_line']['quantity'] = round(self.data_grid['current_line']['quantity'] - self.data_grid['entry_line']['quantity'], self.data_grid['quantity_precision'])
+        return None
+    
+    
+    def clean_ul_order(self):
+        # cancell existing unload order
+        if self.data_grid['unload_line']['order_id'] != 0:
+            self.client.futures_cancel_order(symbol = self.data_grid['symbol'], orderId = self.data_grid['unload_line']['order_id'])
+    
+    
+    
     # post a limit order for grid body
     def post_ul_order(self):
+        
+        
+        
+        # generate unload points
+        if self.data_grid['side'].upper() == 'LONG':
+            self.data_grid['unload_line']['price'] = self.round_to_tick_size(self.data_grid['current_line']['price'] * (1 + self.data_grid['unload_line']['distance']) )
+        else:
+            self.data_grid['unload_line']['price'] = self.round_to_tick_size( self.data_grid['current_line']['price'] * (1 - self.data_grid['unload_line']['distance']) )
+        
+        self.data_grid['unload_line']['quantity'] = round(self.data_grid['current_line']['quantity'] - self.data_grid['entry_line']['quantity'], self.data_grid['quantity_precision'])
+        
         try:
             response = self.client.futures_create_order(
-                    symbol = self.symbol.upper(),
-                    side = self.unload_line['side'],
+                    symbol = self.data_grid['symbol'].upper(),
+                    side = self.data_grid['unload_line']['side'],
                     type = 'LIMIT',
                     timeInForce = 'GTC',
-                    positionSide = self.unload_line['position_side'],
-                    price = self.unload_line['price'],  
-                    quantity = self.unload_line['quantity'],
-                    newClientOrderId = "UL" + self.operation_code + str(uuid.uuid4())[:5]
+                    positionSide = self.data_grid['unload_line']['position_side'],
+                    price = self.data_grid['unload_line']['price'],  
+                    quantity = self.data_grid['unload_line']['quantity'],
+                    newClientOrderId = "UL" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
                     )
-            self.unload_line['order_id'] = response['orderId']
-            self.unload_line['status'] = response['status']
-            self.unload_line['client_order_id'] = response['clientOrderId']
+            self.data_grid['unload_line']['order_id'] = response['orderId']
+            self.data_grid['unload_line']['status'] = response['status']
+            self.data_grid['unload_line']['client_order_id'] = response['clientOrderId']
                 
-            print(f"{self.unload_line['entry']} | {self.unload_line['price']} | {self.unload_line['quantity']} | {self.unload_line['cost']}  ✔️")
+            print(f"{self.data_grid['unload_line']['entry']} | {self.data_grid['unload_line']['price']} | {self.data_grid['unload_line']['quantity']} | {self.data_grid['unload_line']['cost']}  ✔️")
                 
         except KeyError as e:
             print(f"Missing key in order data: {e}")
@@ -355,20 +428,45 @@ class LUGrid:
             print(f"Error posting order: {e}")
 
     
+
+    def update_current_position(self):
+        try:
+            # Fetch futures position information
+            response = self.client.futures_position_information(symbol=self.data_grid['symbol'])
+
+            # Loop through the list to find the relevant position based on 'positionSide'
+            for position_info in response:
+                if float(position_info['positionAmt']) != 0:  # Skip empty positions
+                    self.data_grid['current_line']['price'] = float(position_info.get('entryPrice', 0))
+                    self.data_grid['current_line']['quantity'] = float(position_info.get('positionAmt', 0))
+                    self.data_grid['current_line']['position_side'] = position_info.get('positionSide', 'UNKNOWN')
+                    break  # Exit after finding the first non-empty position
+            else:
+                # Handle case when no valid position data is returned
+                print(f"No active position found for {self.data_grid['symbol']}")
+                self.data_grid['current_line']['price'] = 0
+                self.data_grid['current_line']['quantity'] = 0
+                self.data_grid['current_line']['position_side'] = 'NONE'
+
+        except Exception as e:
+            # Log or handle the error in case the API call fails
+            print(f"update_current_position | Error fetching position information for {self.data_grid['symbol']}: {e}")
+
+    
     
     def print_grid(self):
         try:
             # Print entry line
-            print(f"{self.entry_line['entry']} | {self.entry_line['price']} | {self.entry_line['quantity']} | {self.entry_line['cost']}")
+            print(f"{self.data_grid['entry_line']['entry']} | {self.data_grid['entry_line']['price']} | {self.data_grid['entry_line']['quantity']} | {self.data_grid['entry_line']['cost']}")
 
             # Print grid body
-            for line in self.grid_body:
+            for line in self.data_grid['grid_body']:
                 print(f"{line['entry']} | {line['price']} | {line['quantity']} | {line['cost']}")
 
             # Print stop loss line
-            print(f"{self.stop_loss_line['entry']} ({self.stop_loss_line['distance'] * 100:.2f}%) | "
-              f"{self.stop_loss_line['price']} | {self.stop_loss_line['quantity']} | "
-              f"{self.stop_loss_line['cost']}")
+            print(f"{self.data_grid['stop_loss_line']['entry']} ({self.data_grid['stop_loss_line']['distance'] * 100:.2f}%) | "
+              f"{self.data_grid['stop_loss_line']['price']} | {self.data_grid['stop_loss_line']['quantity']} | "
+              f"{self.data_grid['stop_loss_line']['cost']}")
     
         except KeyError as e:
             print(f"Missing key in data: {e}")
