@@ -17,36 +17,6 @@ def gen_date_code():
 
     return formatted_code
 
-# read data grid in order to upload config
-def read_data_grid(op_code):
-    try:
-        # Load datagrid file
-        cfile = "ops/" + str(op_code) + ".json"
-        with open(cfile, 'r') as file:
-            config_file = json.load(file)
-        return config_file
-    
-    except FileNotFoundError:
-        print(f"Error: {config_file} file not found. Please check the file path.")
-    except KeyError:
-        print("Error: Invalid format in {config_file}. ")
-    
-    
-# Write data grid to operations folder
-def write_data_grid(op_code, data_grid):
-    # if directory exists
-    os.makedirs('ops', exist_ok=True)
-
-    cfile = f"ops/{op_code}.json"
-
-    # Writing the JSON data to the file
-    try:
-        with open(cfile, 'w') as file:
-            json.dump(data_grid, file, indent=4)
-    except IOError as e:
-        print(f"Error writing file {cfile}: {e}")
-
-
 
 def input_data():
     # Helper to safely get user input with default fallback
@@ -176,19 +146,47 @@ class LUGrid:
     
     def __init__(self, operation_code):
         
-        self.data_grid = read_data_grid(operation_code) # reading configuration file
+        # geetting operation code
+        self.operation_code = operation_code # operation code
         
-        # initial default values
-        self.operation_code = operation_code
-
+        self.data_grid = self.read_data_grid() # reading configuration file
         
         # new connection to binance
         self.client = get_connection()
-
-    def save_config(self):
-                
-        write_data_grid(self.operation_code, self.data_grid)
         
+    
+    # read data grid in order to upload config
+    def read_data_grid(self):
+    
+        try:
+            # Load datagrid file
+            cfile = "ops/" + self.operation_code + ".json"
+            with open(cfile, 'r') as file:
+                config_file = json.load(file)
+            return config_file
+        
+        except FileNotFoundError:
+            print(f"Error: {self.operation_code} file not found. Please check the file path.")
+        except KeyError:
+            print("Error: Invalid format in {self.operation_code}. ")
+        
+        
+    # Write data grid to operations folder
+    def write_data_grid(self):
+        
+        # if directory exists
+        os.makedirs('ops', exist_ok=True)
+
+        cfile = f"ops/{self.operation_code}.json"
+
+        # Writing the JSON data to the file
+        try:
+            with open(cfile, 'w') as file:
+                json.dump(self.data_grid, file, indent=4)
+        except IOError as e:
+            print(f"Error writing file {self.operation_code}: {e}")
+
+    
     
     # round price to increment accepted by binance
     def round_to_tick_size(self, price):
@@ -261,44 +259,89 @@ class LUGrid:
             current_price = new_price
             current_quantity = new_quantity
         
-        # generate TAKE PROFIT line
-        if self.data_grid['side'].upper() == 'LONG':
-            self.data_grid['take_profit_line']['price'] = self.round_to_tick_size( self.data_grid['entry_line']['price'] * (1 + self.data_grid['take_profit_line']['distance']) )
-        else:
-            self.data_grid['take_profit_line']['price'] = self.round_to_tick_size( self.data_grid['entry_line']['price'] * (1 - self.data_grid['take_profit_line']['distance']) )
-    
+        
             
+    # update entry line data taking current line as data, and the current position will be the new entry
+    def update_entry_line(self):
+        current_line = self.data_grid['current_line']
+        entry_line = self.data_grid['entry_line']
     
+        # Update entry line with current line values
+        entry_line['price'] = current_line['price']
+        entry_line['quantity'] = current_line['quantity']
+        entry_line['cost'] = round(entry_line['price'] * entry_line['quantity'], 2)
+        
+        return None
     
     
     # post entry order
     def post_entry_order(self):
+        # Generate grid positions
+        self.generate_grid()
+
+        entry_line = self.data_grid.get('entry_line', {})
+    
+        # Check for required fields in entry_line
+        required_fields = ['price', 'quantity', 'side', 'position_side']
+        if not all(k in entry_line for k in required_fields):
+            print("Error: entry_line missing required fields.")
+            return
+
         try:
-            # Ensuring entry_line contains necessary keys
-            if all(k in self.data_grid['entry_line'] for k in ['price', 'quantity']):
-                response = self.client.futures_create_order(
-                    symbol = self.data_grid['symbol'].upper(),
-                    side = self.data_grid['entry_line']['side'],
-                    type = 'LIMIT',
-                    timeInForce = 'GTC',
-                    positionSide = self.data_grid['entry_line']['position_side'],
-                    price = self.data_grid['entry_line']['price'],
-                    quantity = self.data_grid['entry_line']['quantity'],
-                    newClientOrderId = "IN" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
-                    )
-                
-                self.data_grid['entry_line']['order_id'] = response['orderId']
-                self.data_grid['entry_line']['status'] = response['status']
-                self.data_grid['entry_line']['client_order_id'] = response['clientOrderId']
-                
-                print(f"{self.data_grid['entry_line']['entry']} | {self.data_grid['entry_line']['price']} | "
-                  f"{self.data_grid['entry_line']['quantity']} | {self.data_grid['entry_line']['cost']}  ✔️")
-            else:
-                print("Error: entry_line missing required fields.")
+            # Create the entry order
+            response = self.client.futures_create_order(
+                symbol = self.data_grid['symbol'].upper(),
+                side = entry_line['side'],
+                type = 'LIMIT',
+                timeInForce = 'GTC',
+                positionSide = entry_line['position_side'],
+                price = entry_line['price'],
+                quantity = entry_line['quantity'],
+                newClientOrderId = f"IN_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+            )
+
+            # Update entry_line with order response data
+            entry_line['order_id'] = response.get('orderId', 0)
+            entry_line['status'] = response.get('status', 'UNKNOWN')
+            entry_line['client_order_id'] = response.get('clientOrderId', 'UNKNOWN')
+            
+            # Log the placed order details
+            print(f"{entry_line.get('entry', 'N/A')} | {entry_line['price']} | "
+                  f"{entry_line['quantity']} | {entry_line.get('cost', 'N/A')} ✔️")
+
         except Exception as e:
-            print(f"Error placing order: {e}")        
-        
+            print(f"Error placing order: {e}")
+
         return None
+
+    
+    # clean entire grid
+    def clean_grid_order(self):
+        order_list = self.data_grid.get('grid_body', [])
+
+        if not order_list:
+            print("No grid orders to cancel.")
+            return
+
+        # Extract order IDs from the grid body
+        order_ids = [order.get('order_id') for order in order_list if order.get('order_id')]
+
+        if not order_ids:
+            print("No valid order IDs found.")
+            return
+
+        try:
+            # Cancel multiple orders at once
+            response = self.client.futures_cancel_orders(symbol=self.data_grid['symbol'], orderIdList=order_ids)
+            print(f"Successfully cancelled orders: {order_ids}")
+        except Exception as e:
+            print(f"Error cancelling orders: {e}")
+
+        # Clear grid_body after all cancellations
+        self.data_grid['grid_body'] = []
+        print("All grid orders cancelled and cleared.")
+
+        
     
     
     # post a limit order for grid body
@@ -327,105 +370,160 @@ class LUGrid:
             print(f"Error posting order: {e}")
     
        
+    # clean stop loss order
+    def clean_sl_order(self):
+         order_id = self.data_grid['stop_loss_order'].get('order_id', 0)
+     
+         # Check if there is an existing stop loss order to cancel
+         if order_id:
+             try:
+                 self.client.futures_cancel_order(symbol=self.data_grid['symbol'], orderId=order_id)
+                 self.data_grid['stop_loss_order']['price'] = 0
+                 self.data_grid['stop_loss_order']['quantity'] = 0
+                 self.data_grid['stop_loss_order']['order_id'] = 0
+                 self.data_grid['stop_loss_order']['client_order_id'] = "SL_"
+             except Exception as e:
+                 print(f"Error cancelling stop loss order {order_id} for {self.data_grid['symbol']}: {e}")
+            
+    
     # post entry order
     def post_sl_order(self):
         try:
+            # Post the stop loss order
             response = self.client.futures_create_order(
-                    symbol = self.data_grid['symbol'].upper(),
-                    side = self.data_grid['stop_loss_line']['side'], #if the operation is LONG then the SL should be SELL
-                    positionSide = self.data_grid['stop_loss_line']['position_side'],
-                    type = 'STOP_MARKET',
-                    stopPrice = self.data_grid['stop_loss_line']['price'],
-                    closePosition = True,
-                    newClientOrderId = "SL" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
-                    )
-            self.data_grid['stop_loss_line']['order_id'] = response['orderId']
-            self.data_grid['stop_loss_line']['status'] = response['status']
-            self.data_grid['stop_loss_line']['client_order_id'] = response['clientOrderId']
-            
-            print(f"{self.data_grid['stop_loss_line']['entry']}({self.data_grid['stop_loss_line']['distance']}%)  | {self.data_grid['stop_loss_line']['price']} | "
-                  f"{self.data_grid['stop_loss_line']['quantity']} | {self.data_grid['stop_loss_line']['cost']}  ✔️")
+                symbol=self.data_grid['symbol'].upper(),
+                side=self.data_grid['stop_loss_line']['side'],  # SL for LONG is SELL and vice versa
+                positionSide=self.data_grid['stop_loss_line']['position_side'],
+                type='STOP_MARKET',
+                stopPrice=self.data_grid['stop_loss_line']['price'],
+                closePosition=True,
+                newClientOrderId=f"SL_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+            )
+
+            # Update stop loss line with response data
+            self.data_grid['stop_loss_line']['order_id'] = response.get('orderId', 0)
+            self.data_grid['stop_loss_line']['status'] = response.get('status', 'UNKNOWN')
+            self.data_grid['stop_loss_line']['client_order_id'] = response.get('clientOrderId', 'UNKNOWN')
+
+            # Log successful stop loss order
+            print(f"{self.data_grid['stop_loss_line']['entry']} ({round(self.data_grid['stop_loss_line']['distance']*100, 2)}%) | "
+                  f"{self.data_grid['stop_loss_line']['price']} | {self.data_grid['stop_loss_line']['quantity']} | "
+                  f"{self.data_grid['stop_loss_line']['cost']} ✔️")
+
         except Exception as e:
-            print(f"Error placing order: {e}")        
-        
+            print(f"Error placing stop loss order: {e}")
+
         return None
 
 
-    # post entry order
+
+
+    # clean take profit order
+    def clean_tp_order(self):
+         order_id = self.data_grid['take_profit_order'].get('order_id', 0)
+     
+         # Check if there is an existing unload order to cancel
+         if order_id:
+             try:
+                 self.client.futures_cancel_order(symbol=self.data_grid['symbol'], orderId=order_id)
+                 self.data_grid['take_profit_order']['price'] = 0
+                 self.data_grid['take_profit_order']['quantity'] = 0
+                 self.data_grid['take_profit_order']['order_id'] = 0
+                 self.data_grid['take_profit_order']['client_order_id'] = "TP_"
+             except Exception as e:
+                 print(f"Error cancelling take profit order {order_id} for {self.data_grid['symbol']}: {e}")
+            
+
+    # post take profit order
     def post_tp_order(self):
         try:
+            # Calculate the take profit price based on the side
+            price_factor = 1 + self.data_grid['take_profit_line']['distance'] if self.data_grid['side'].upper() == 'LONG' else 1 - self.data_grid['take_profit_line']['distance']
+            self.data_grid['take_profit_line']['price'] = self.round_to_tick_size(self.data_grid['entry_line']['price'] * price_factor)
+
+            # Post the take profit order
             response = self.client.futures_create_order(
-                    symbol = self.data_grid['symbol'].upper(),
-                    side = self.data_grid['take_profit_line']['side'], #if the operation is LONG then the TP should be SELL
-                    positionSide = self.data_grid['take_profit_line']['position_side'],
-                    type = 'TAKE_PROFIT_MARKET',
-                    stopPrice = self.data_grid['take_profit_line']['price'],
-                    closePosition = True,
-                    newClientOrderId = "TP" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
-                    )
-            self.data_grid['take_profit_line']['order_id'] = response['orderId']
-            self.data_grid['take_profit_line']['status'] = response['status']
-            self.data_grid['take_profit_line']['client_order_id'] = response['clientOrderId']
+                symbol=self.data_grid['symbol'].upper(),
+                side=self.data_grid['take_profit_line']['side'],  # TP for LONG is SELL and vice versa
+                positionSide=self.data_grid['take_profit_line']['position_side'],
+                type='TAKE_PROFIT_MARKET',
+                stopPrice=self.data_grid['take_profit_line']['price'],
+                closePosition=True,
+                newClientOrderId=f"TP_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+            )
+
+            # Update take profit line with response data
+            self.data_grid['take_profit_line']['order_id'] = response.get('orderId', 0)
+            self.data_grid['take_profit_line']['status'] = response.get('status', 'UNKNOWN')
+            self.data_grid['take_profit_line']['client_order_id'] = response.get('clientOrderId', 'UNKNOWN')
+
+            # Log the successful order
+            print(f"{self.data_grid['take_profit_line']['entry']} ({round(self.data_grid['take_profit_line']['distance']*100,2)}%) | "
+                  f"{self.data_grid['take_profit_line']['price']} | {self.data_grid['take_profit_line']['quantity']} | "
+                  f"{self.data_grid['take_profit_line']['cost']} ✔️")
             
-            print(f"{self.data_grid['take_profit_line']['entry']}({self.data_grid['take_profit_line']['distance']}%)  | {self.data_grid['take_profit_line']['price']} | "
-                  f"{self.data_grid['take_profit_line']['quantity']} | {self.data_grid['take_profit_line']['cost']}  ✔️")
         except Exception as e:
-            print(f"Error placing order: {e}")        
-        
-        return None
-    
-    # generate unload point
-    def generate_unload(self):
-        if self.data_grid['side'].upper() == 'LONG':
-            self.data_grid['unload_line']['price'] = self.round_to_tick_size(self.data_grid['current_line']['price'] * (1 + self.data_grid['unload_line']['distance']) )
-        else:
-            self.data_grid['unload_line']['price'] = self.round_to_tick_size( self.data_grid['current_line']['price'] * (1 - self.data_grid['unload_line']['distance']) )
-        
-        self.data_grid['unload_line']['quantity'] = round(self.data_grid['current_line']['quantity'] - self.data_grid['entry_line']['quantity'], self.data_grid['quantity_precision'])
+            print(f"Error placing take profit order: {e}")
+
         return None
     
     
+    # clean unload order
     def clean_ul_order(self):
-        # cancell existing unload order
-        if self.data_grid['unload_line']['order_id'] != 0:
-            self.client.futures_cancel_order(symbol = self.data_grid['symbol'], orderId = self.data_grid['unload_line']['order_id'])
+        order_id = self.data_grid['unload_line'].get('order_id', 0)
     
+        # Check if there is an existing unload order to cancel
+        if order_id:
+            try:
+                self.client.futures_cancel_order(symbol=self.data_grid['symbol'], orderId=order_id)
+                self.data_grid['unload_line']['price'] = 0
+                self.data_grid['unload_line']['quantity'] = 0
+                self.data_grid['unload_line']['order_id'] = 0
+                self.data_grid['unload_line']['client_order_id'] = "UL_"
+                
+            except Exception as e:
+                print(f"Error cancelling unload order {order_id} for {self.data_grid['symbol']}: {e}")
+        
     
-    
-    # post a limit order for grid body
+    # post unload order
     def post_ul_order(self):
-        
-        
-        
-        # generate unload points
-        if self.data_grid['side'].upper() == 'LONG':
-            self.data_grid['unload_line']['price'] = self.round_to_tick_size(self.data_grid['current_line']['price'] * (1 + self.data_grid['unload_line']['distance']) )
-        else:
-            self.data_grid['unload_line']['price'] = self.round_to_tick_size( self.data_grid['current_line']['price'] * (1 - self.data_grid['unload_line']['distance']) )
-        
-        self.data_grid['unload_line']['quantity'] = round(self.data_grid['current_line']['quantity'] - self.data_grid['entry_line']['quantity'], self.data_grid['quantity_precision'])
-        
         try:
+            # Calculate the unload price based on the side (LONG or SHORT)
+            price_factor = 1 + self.data_grid['unload_line']['distance'] if self.data_grid['side'].upper() == 'LONG' else 1 - self.data_grid['unload_line']['distance']
+            self.data_grid['unload_line']['price'] = self.round_to_tick_size(self.data_grid['current_line']['price'] * price_factor)
+
+            # Calculate unload quantity
+            self.data_grid['unload_line']['quantity'] = round(
+                self.data_grid['current_line']['quantity'] - self.data_grid['entry_line']['quantity'],
+                self.data_grid['quantity_precision']
+            )
+
+            # Post the limit order
             response = self.client.futures_create_order(
-                    symbol = self.data_grid['symbol'].upper(),
-                    side = self.data_grid['unload_line']['side'],
-                    type = 'LIMIT',
-                    timeInForce = 'GTC',
-                    positionSide = self.data_grid['unload_line']['position_side'],
-                    price = self.data_grid['unload_line']['price'],  
-                    quantity = self.data_grid['unload_line']['quantity'],
-                    newClientOrderId = "UL" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
-                    )
-            self.data_grid['unload_line']['order_id'] = response['orderId']
-            self.data_grid['unload_line']['status'] = response['status']
-            self.data_grid['unload_line']['client_order_id'] = response['clientOrderId']
-                
-            print(f"{self.data_grid['unload_line']['entry']} | {self.data_grid['unload_line']['price']} | {self.data_grid['unload_line']['quantity']} | {self.data_grid['unload_line']['cost']}  ✔️")
-                
+                symbol=self.data_grid['symbol'].upper(),
+                side=self.data_grid['unload_line']['side'],
+                type='LIMIT',
+                timeInForce='GTC',
+                positionSide=self.data_grid['unload_line']['position_side'],
+                price=self.data_grid['unload_line']['price'],
+                quantity=self.data_grid['unload_line']['quantity'],
+                newClientOrderId=f"UL_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+            )
+
+            # Update unload line with the response data
+            self.data_grid['unload_line']['order_id'] = response.get('orderId', 0)
+            self.data_grid['unload_line']['status'] = response.get('status', 'UNKNOWN')
+            self.data_grid['unload_line']['client_order_id'] = response.get('clientOrderId', 'UNKNOWN')
+
+            # Log the success message
+            print(f"Order posted: {self.data_grid['unload_line']['entry']} | "
+                  f"{self.data_grid['unload_line']['price']} | {self.data_grid['unload_line']['quantity']} ✔️")
+        
         except KeyError as e:
             print(f"Missing key in order data: {e}")
         except Exception as e:
             print(f"Error posting order: {e}")
+
 
     
 

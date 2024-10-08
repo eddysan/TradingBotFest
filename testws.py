@@ -33,29 +33,27 @@ if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
             case "IN": #the event is entry
                     print(f"IN: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() # read position information at first the position will be same as entry_line
-                    grid.save_config() # saving all configuration to json
+                    grid.write_data_grid()
                 
             case "GD": #the event taken is in grid
                     print(f"GD grid.: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() #read current position
-                    
-                    # get the current position
-                    # calculate unload price and quantity
-                    # delete existing unload order
-                    # post unload
-                    grid.save_config() # saving all configuration to json
-                    
-                                    
+                    grid.clean_ul_order()
+                    grid.post_ul_order()
+                    grid.write_data_grid() # saving all configuration to json
+                                                        
             case "UL": #the event is unload
                     print(f"UNLOAD operation: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() #read current position
-                    # delete all open orders (grid, tp, sl)
-                    # read and load new entry point: price and quantity
-                    # generate new grid with new entry
-                    # post grid
-                    # post SL
-                    # post TP
-                    grid.save_config() # saving all configuration to json
+                    grid.clean_ul_order() # clean unload existing position
+                    grid.clean_grid_order() # clean grid rest orders
+                    grid.clean_tp_order() # clean take profit order
+                    grid.clean_sl_order() # clean stop loss order
+                    grid.update_entry_line() # updating entry line from current_line values
+                    grid.post_grid_order() # generate new grid and post it, taking entry price as entry and post it
+                    grid.post_sl_order() # post stop loss order
+                    grid.post_tp_order() # post take profit order
+                    grid.write_data_grid() # saving all configuration to json
                 
             case "SL": #the event is stop loss
                     print(f"STOP_LOSS operation, {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
