@@ -1,14 +1,14 @@
 {
-    "operation_code": "2410080952ADAUSDTLONG",
-    "symbol": "ADAUSDT",
+    "operation_code": "10091153-XRP-L",
+    "symbol": "XRPUSDT",
     "side": "LONG",
     "grid_distance": 0.02,
     "quantity_increment": 0.4,
     "stop_loss_amount": 10.0,
-    "price_precision": 5,
-    "quantity_precision": 0,
+    "price_precision": 4,
+    "quantity_precision": 1,
     "tick_size": 0.0001,
-    "step_size": 1.0,
+    "step_size": 0.1,
     "compound": {
         "enabled": false,
         "risk": 0.1,
@@ -18,32 +18,32 @@
         "entry": "IN",
         "side": "BUY",
         "position_side": "LONG",
-        "price": 0.346,
-        "quantity": 29.0,
-        "cost": 10.03,
-        "order_id": 44740695624,
+        "price": 0.528,
+        "quantity": 18.9,
+        "cost": 9.98,
+        "order_id": 0,
         "status": "NEW",
-        "client_order_id": "IN_2410080952ADAUSDTLONG_2406d"
+        "client_order_id": ""
     },
     "take_profit_line": {
         "entry": "TP",
         "side": "SELL",
         "position_side": "LONG",
         "distance": 0.05,
-        "price": 0.3633,
+        "price": 0.5544,
         "quantity": 0,
         "cost": 0,
-        "order_id": 44740695777,
+        "order_id": 67466815882,
         "status": "NEW",
-        "client_order_id": "TP_2410080952ADAUSDTLONG_742af"
+        "client_order_id": "TP_10091153-XRP-L_87039"
     },
     "unload_line": {
         "entry": "UL",
         "side": "SELL",
         "position_side": "LONG",
         "distance": 0.005,
-        "price": 0.3477,
-        "quantity": 0.0,
+        "price": 0,
+        "quantity": 0,
         "cost": 0,
         "order_id": 0,
         "status": "NEW",
@@ -53,22 +53,22 @@
         "entry": "SL",
         "side": "SELL",
         "position_side": "LONG",
-        "distance": 0.1231,
-        "price": 0.3034,
+        "distance": 0.1235,
+        "price": 0.4628,
         "quantity": 0,
         "cost": 0,
-        "order_id": 44740695771,
+        "order_id": 67466815826,
         "status": "NEW",
-        "client_order_id": "SL_2410080952ADAUSDTLONG_912e4"
+        "client_order_id": "SL_10091153-XRP-L_0fcd2"
     },
     "average_line": {
-        "price": 0.3179,
-        "quantity": 692.0,
-        "sl_distance": 4.54572728909189
+        "price": 0.485,
+        "quantity": 450.8,
+        "sl_distance": 4.573770341843595
     },
     "current_line": {
-        "price": 0.346,
-        "quantity": 29.0,
+        "price": 0.528,
+        "quantity": 18.9,
         "position_side": "LONG"
     },
     "grid_body": [
@@ -76,67 +76,67 @@
             "entry": 1,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 0.3391,
-            "quantity": 41.0,
-            "cost": 13.77,
-            "order_id": 44740695646,
+            "price": 0.5174,
+            "quantity": 26.5,
+            "cost": 13.69,
+            "order_id": 67466815239,
             "status": "NEW",
-            "client_order_id": "GD_2410080952ADAUSDTLONG_218f0"
+            "client_order_id": "GD_10091153-XRP-L_6aa8f"
         },
         {
             "entry": 2,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 0.3323,
-            "quantity": 57.0,
-            "cost": 18.89,
-            "order_id": 44740695679,
+            "price": 0.5071,
+            "quantity": 37.0,
+            "cost": 18.78,
+            "order_id": 67466815378,
             "status": "NEW",
-            "client_order_id": "GD_2410080952ADAUSDTLONG_e0ae7"
+            "client_order_id": "GD_10091153-XRP-L_23386"
         },
         {
             "entry": 3,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 0.3257,
-            "quantity": 80.0,
-            "cost": 25.91,
-            "order_id": 44740695696,
+            "price": 0.4969,
+            "quantity": 51.9,
+            "cost": 25.77,
+            "order_id": 67466815463,
             "status": "NEW",
-            "client_order_id": "GD_2410080952ADAUSDTLONG_905a3"
+            "client_order_id": "GD_10091153-XRP-L_ad47a"
         },
         {
             "entry": 4,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 0.3191,
-            "quantity": 111.0,
-            "cost": 35.55,
-            "order_id": 44740695709,
+            "price": 0.487,
+            "quantity": 72.6,
+            "cost": 35.36,
+            "order_id": 67466815561,
             "status": "NEW",
-            "client_order_id": "GD_2410080952ADAUSDTLONG_a791a"
+            "client_order_id": "GD_10091153-XRP-L_57f35"
         },
         {
             "entry": 5,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 0.3128,
-            "quantity": 156.0,
-            "cost": 48.78,
-            "order_id": 44740695739,
+            "price": 0.4773,
+            "quantity": 101.6,
+            "cost": 48.51,
+            "order_id": 67466815654,
             "status": "NEW",
-            "client_order_id": "GD_2410080952ADAUSDTLONG_a8c77"
+            "client_order_id": "GD_10091153-XRP-L_ea2d5"
         },
         {
             "entry": 6,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 0.3065,
-            "quantity": 218.0,
-            "cost": 66.93,
-            "order_id": 44740695762,
+            "price": 0.4677,
+            "quantity": 142.3,
+            "cost": 66.56,
+            "order_id": 67466815766,
             "status": "NEW",
-            "client_order_id": "GD_2410080952ADAUSDTLONG_ac834"
+            "client_order_id": "GD_10091153-XRP-L_e6381"
         }
     ]
 }

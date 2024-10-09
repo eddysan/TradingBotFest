@@ -339,25 +339,20 @@ class LUGrid:
     
     # clean entire grid
     def clean_grid_order(self):
+        dg_symbol = self.data_grid['symbol']
         order_list = self.data_grid.get('grid_body', [])
 
         if not order_list:
             print("No grid orders to cancel.")
             return
 
-        # Extract order IDs from the grid body
-        order_ids = [order.get('order_id') for order in order_list if order.get('order_id')]
-
-        if not order_ids:
-            print("No valid order IDs found.")
-            return
-
-        try:
-            # Cancel multiple orders at once
-            response = self.client.futures_cancel_orders(symbol=self.data_grid['symbol'], orderIdList=order_ids)
-            print(f"Successfully cancelled orders: {order_ids}")
-        except Exception as e:
-            print(f"Error cancelling orders: {e}")
+        for order in order_list:
+            try:
+                # Cancel multiple orders at once
+                response = self.client.futures_cancel_order(symbol=dg_symbol, orderId=order['order_id'])
+                
+            except Exception as e:
+                print(f"Error cancelling orders: {e} ")
 
         # Clear grid_body after all cancellations
         self.data_grid['grid_body'] = []

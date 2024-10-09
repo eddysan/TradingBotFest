@@ -27,19 +27,22 @@ def on_message(ws, message):
                 
             match kind_order:
                 case "IN": #the event is entry
-                        print(f"IN: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        print(f"IN taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() # read position information at first the position will be same as entry_line
+                        grid.clean_tp_order() # clean take profit order
+                        grid.post_tp_order() # post take profit order
                         grid.write_data_grid()
                     
                 case "GD": #the event taken is in grid
-                        print(f"GD grid.: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        print(f"GD taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() #read current position
                         grid.clean_ul_order()
                         grid.post_ul_order()
+                        grid.post_tp_order() # post take profit order
                         grid.write_data_grid() # saving all configuration to json
 
                 case "UL": #the event is unload
-                        print(f"UNLOAD operation: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        print(f"UL taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() #read current position
                         grid.clean_ul_order() # clean unload existing position
                         grid.clean_grid_order() # clean grid rest orders
@@ -52,11 +55,11 @@ def on_message(ws, message):
                         grid.write_data_grid() # saving all configuration to json
                     
                 case "SL": #the event is stop loss
-                        print(f"STOP_LOSS operation, {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        print(f"SL taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                         # close all open orders from list grid
                     
                 case "TP": #the event is take profit
-                        print(f"TAKE_PROFIT operation: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        print(f"TP taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                         # close all open orders from grid list
                         
                 case _:
