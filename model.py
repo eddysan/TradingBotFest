@@ -13,7 +13,7 @@ def gen_date_code():
     now = datetime.now()
 
     # Format the date and time as "YYYYMMDDHHmm"
-    formatted_code = now.strftime("%y%m%d%H%M")
+    formatted_code = now.strftime("%m%d%H%M")
 
     return formatted_code
 
@@ -75,7 +75,7 @@ def input_data():
         config_file['stop_loss_amount'] = get_input("Stop Loss Amount ($10): ", 10.0, float)
     
     # INPUT quantity or compound quantity
-    quantity = config_file['compound']['quantity'] if config_file['compound']['enabled'] else get_input("Entry Quantity ($10): ", 0.0, float)
+    quantity = config_file['compound']['quantity'] if config_file['compound']['enabled'] else get_input("Entry Quantity ($10): ", 10.0, float)
     config_file['entry_line']['quantity'] = round(quantity / config_file['entry_line']['price'], config_file['quantity_precision'])
 
     # saving grid body    
@@ -105,7 +105,7 @@ def input_data():
     config_file['current_line']['position_side'] = config_file['entry_line']['position_side']
 
     # Generate operation code
-    operation_code = gen_date_code() + config_file['symbol'] + config_file['side']
+    operation_code = gen_date_code() + "-" + str(config_file['symbol'])[:-4] + "-" + str(config_file['side'])[0]
     config_file['operation_code'] = operation_code
 
     # Write config file to operations folder
@@ -154,21 +154,44 @@ class LUGrid:
         # new connection to binance
         self.client = get_connection()
         
+    @property
+    def symbol(self):
+        return self.data_grid['symbol']
     
     # read data grid in order to upload config
     def read_data_grid(self):
-    
-        try:
-            # Load datagrid file
-            cfile = "ops/" + self.operation_code + ".json"
-            with open(cfile, 'r') as file:
-                config_file = json.load(file)
-            return config_file
-        
-        except FileNotFoundError:
-            print(f"Error: {self.operation_code} file not found. Please check the file path.")
-        except KeyError:
-            print("Error: Invalid format in {self.operation_code}. ")
+
+        operation_file = f"ops/{self.operation_code}.json"
+        fallback_file = "config.json"  # The fallback file
+
+        # Check if the primary file exists
+        if os.path.isfile(operation_file):
+            try:
+                # Load the primary file
+                with open(operation_file, 'r') as file:
+                    config_file = json.load(file)
+                return config_file
+
+            except json.JSONDecodeError:
+                print(f"Error: Invalid format in primary file '{operation_file}'.")
+                return None
+
+        else:
+            # Check if the secondary file exists
+            if os.path.isfile(fallback_file):
+                try:
+                    # Load the secondary file
+                    with open(fallback_file, 'r') as file:
+                        config_file = json.load(file)
+                    return config_file
+
+                except json.JSONDecodeError:
+                    print(f"Error: Invalid format in secondary file '{fallback_file}'.")
+                    return None
+
+            else:
+                print(f"Secondary file '{fallback_file}' also not found.")
+                return None
         
         
     # Write data grid to operations folder
@@ -276,8 +299,7 @@ class LUGrid:
     
     # post entry order
     def post_entry_order(self):
-        # Generate grid positions
-        self.generate_grid()
+        
 
         entry_line = self.data_grid.get('entry_line', {})
     
@@ -346,6 +368,9 @@ class LUGrid:
     
     # post a limit order for grid body
     def post_grid_order(self):
+        # Generate grid positions
+        self.generate_grid()
+        
         try:
             for i in range(len(self.data_grid['grid_body'])):
                 response = self.client.futures_create_order(
@@ -372,16 +397,16 @@ class LUGrid:
        
     # clean stop loss order
     def clean_sl_order(self):
-         order_id = self.data_grid['stop_loss_order'].get('order_id', 0)
+         order_id = self.data_grid['stop_loss_line'].get('order_id', 0)
      
          # Check if there is an existing stop loss order to cancel
          if order_id:
              try:
                  self.client.futures_cancel_order(symbol=self.data_grid['symbol'], orderId=order_id)
-                 self.data_grid['stop_loss_order']['price'] = 0
-                 self.data_grid['stop_loss_order']['quantity'] = 0
-                 self.data_grid['stop_loss_order']['order_id'] = 0
-                 self.data_grid['stop_loss_order']['client_order_id'] = "SL_"
+                 self.data_grid['stop_loss_line']['price'] = 0
+                 self.data_grid['stop_loss_line']['quantity'] = 0
+                 self.data_grid['stop_loss_line']['order_id'] = 0
+                 self.data_grid['stop_loss_line']['client_order_id'] = "SL_"
              except Exception as e:
                  print(f"Error cancelling stop loss order {order_id} for {self.data_grid['symbol']}: {e}")
             
@@ -420,16 +445,16 @@ class LUGrid:
 
     # clean take profit order
     def clean_tp_order(self):
-         order_id = self.data_grid['take_profit_order'].get('order_id', 0)
+         order_id = self.data_grid['take_profit_line'].get('order_id', 0)
      
          # Check if there is an existing unload order to cancel
          if order_id:
              try:
                  self.client.futures_cancel_order(symbol=self.data_grid['symbol'], orderId=order_id)
-                 self.data_grid['take_profit_order']['price'] = 0
-                 self.data_grid['take_profit_order']['quantity'] = 0
-                 self.data_grid['take_profit_order']['order_id'] = 0
-                 self.data_grid['take_profit_order']['client_order_id'] = "TP_"
+                 self.data_grid['take_profit_line']['price'] = 0
+                 self.data_grid['take_profit_line']['quantity'] = 0
+                 self.data_grid['take_profit_line']['order_id'] = 0
+                 self.data_grid['take_profit_line']['client_order_id'] = "TP_"
              except Exception as e:
                  print(f"Error cancelling take profit order {order_id} for {self.data_grid['symbol']}: {e}")
             

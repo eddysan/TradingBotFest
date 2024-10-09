@@ -5,16 +5,15 @@ from websocket import WebSocketApp
 import time
 from model import *
 
-ws = None  # Global variable for WebSocket connection
-
-client = get_connection()
 
 cfile = "message.json"
 with open(cfile, 'r') as file:
     message = json.load(file)
     
     
-#    message = json.loads(message) #message received
+message = json.loads(message) #message received
+
+ws = None  # Global variable for WebSocket connection
 
 if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
     symbol = message['o']['s']  # Symbol (e.g., XRPUSDT)
@@ -24,7 +23,6 @@ if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
     operation_code = str(message['o']['c']).split('_')[1] # getting operation code
     
     grid = LUGrid(operation_code)
-        
         
     # Filter for SYMBOL pair and when order is filled
     if symbol == grid.symbol:
@@ -41,7 +39,7 @@ if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
                     grid.clean_ul_order()
                     grid.post_ul_order()
                     grid.write_data_grid() # saving all configuration to json
-                                                        
+
             case "UL": #the event is unload
                     print(f"UNLOAD operation: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() #read current position
@@ -65,5 +63,6 @@ if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
                     
             case _:
                     print(f"No kind operation")
-            
+    
+    print("hola")
 

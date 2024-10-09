@@ -1,6 +1,6 @@
 {
   "operation_code": "2410071120",
-  "symbol": "BTCUSDT",
+  "symbol": "NONE",
   "side": "LONG",
   "grid_distance": 0.02,
   "quantity_increment": 0.4,
