@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
 import json
 from binance.client import Client
 from binance.streams import BinanceSocketManager
 from websocket import WebSocketApp
 import time
-from model import *
+from packages import *
 
 ws = None  # Global variable for WebSocket connection
 client = get_connection()
