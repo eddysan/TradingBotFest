@@ -3,12 +3,11 @@ import os
 import uuid
 import json
 from binance.client import Client
-import time
 import math
 import logging
 
 
-# generate op code
+# generate operation code
 def gen_date_code():
     # Get the current date and time
     now = datetime.now()
@@ -18,7 +17,7 @@ def gen_date_code():
 
     return formatted_code
 
-
+# input data from console
 def input_data():
     # Helper to safely get user input with default fallback
     def get_input(prompt, default_value=None, cast_func=str):
@@ -30,6 +29,7 @@ def input_data():
         with open('config.json', 'r') as file:
             config_file = json.load(file)
     except (FileNotFoundError, KeyError):
+        logging.exception("Error: Invalid config.json file or not found. Please check the file path and format.")
         print("Error: Invalid config.json file or not found. Please check the file path and format.")
         return
     
@@ -76,9 +76,9 @@ def input_data():
         config_file['stop_loss_amount'] = get_input("Stop Loss Amount ($10): ", 10.0, float)
     
     # INPUT quantity or compound quantity
-    #quantity = config_file['compound']['quantity'] if config_file['compound']['enabled'] else get_input("Entry Quantity ($10): ", 10.0, float)
-    #config_file['entry_line']['quantity'] = round(quantity / config_file['entry_line']['price'], config_file['quantity_precision'])
-    config_file['entry_line']['quantity'] = round(get_input("Entry Quantity: ", 0.0, float), config_file['quantity_precision'])
+    quantity = config_file['compound']['quantity'] if config_file['compound']['enabled'] else get_input("Entry Quantity ($10): ", 10.0, float)
+    config_file['entry_line']['quantity'] = round(quantity / config_file['entry_line']['price'], config_file['quantity_precision'])
+    #config_file['entry_line']['quantity'] = round(get_input("Entry Quantity: ", 0.0, float), config_file['quantity_precision'])
 
     # saving grid body    
     config_file['grid_body'] = []

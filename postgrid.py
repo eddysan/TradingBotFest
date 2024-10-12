@@ -12,7 +12,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(f"logs/{operation_code}.log"),  # Logs to a file
-        #adalogging.StreamHandler()  # Logs to the console
+        #logging.StreamHandler()  # Logs to the console
     ]
 )
 
