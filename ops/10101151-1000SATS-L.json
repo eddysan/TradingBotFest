@@ -1,0 +1,142 @@
+{
+    "operation_code": "10101151-1000SATS-L",
+    "symbol": "1000SATSUSDT",
+    "side": "LONG",
+    "grid_distance": 0.02,
+    "quantity_increment": 0.4,
+    "stop_loss_amount": 10.0,
+    "price_precision": 7,
+    "quantity_precision": 0,
+    "tick_size": 1e-07,
+    "step_size": 1.0,
+    "compound": {
+        "enabled": false,
+        "risk": 0.1,
+        "quantity": 0
+    },
+    "entry_line": {
+        "entry": "IN",
+        "side": "BUY",
+        "position_side": "LONG",
+        "price": 0.000255,
+        "quantity": 39216.0,
+        "cost": 10.0,
+        "order_id": 6691239053,
+        "status": "NEW",
+        "client_order_id": "IN_10101151-1000SATS-L_27855"
+    },
+    "take_profit_line": {
+        "entry": "TP",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.05,
+        "price": 0.0002678,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 6691240346,
+        "status": "NEW",
+        "client_order_id": "TP_10101151-1000SATS-L_ba448"
+    },
+    "unload_line": {
+        "entry": "UL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.005,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "stop_loss_line": {
+        "entry": "SL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.1235,
+        "price": 0.0002235,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 6691240107,
+        "status": "NEW",
+        "client_order_id": "SL_10101151-1000SATS-L_f4222"
+    },
+    "average_line": {
+        "price": 0.0002342,
+        "quantity": 935433.0,
+        "sl_distance": 4.564575789966734
+    },
+    "current_line": {
+        "price": 0.000255,
+        "quantity": 39216.0,
+        "position_side": "LONG"
+    },
+    "grid_body": [
+        {
+            "entry": 1,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.0002499,
+            "quantity": 54902.0,
+            "cost": 13.72,
+            "order_id": 6691239162,
+            "status": "NEW",
+            "client_order_id": "GD_10101151-1000SATS-L_2ffac"
+        },
+        {
+            "entry": 2,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.0002449,
+            "quantity": 76863.0,
+            "cost": 18.82,
+            "order_id": 6691239303,
+            "status": "NEW",
+            "client_order_id": "GD_10101151-1000SATS-L_9b3bd"
+        },
+        {
+            "entry": 3,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.00024,
+            "quantity": 107609.0,
+            "cost": 25.83,
+            "order_id": 6691239381,
+            "status": "NEW",
+            "client_order_id": "GD_10101151-1000SATS-L_fd2fa"
+        },
+        {
+            "entry": 4,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.0002352,
+            "quantity": 150652.0,
+            "cost": 35.43,
+            "order_id": 6691239506,
+            "status": "NEW",
+            "client_order_id": "GD_10101151-1000SATS-L_6c34b"
+        },
+        {
+            "entry": 5,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.0002305,
+            "quantity": 210913.0,
+            "cost": 48.62,
+            "order_id": 6691239593,
+            "status": "NEW",
+            "client_order_id": "GD_10101151-1000SATS-L_a4426"
+        },
+        {
+            "entry": 6,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.0002259,
+            "quantity": 295278.0,
+            "cost": 66.7,
+            "order_id": 6691239846,
+            "status": "NEW",
+            "client_order_id": "GD_10101151-1000SATS-L_61a5c"
+        }
+    ]
+}

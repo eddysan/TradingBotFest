@@ -76,8 +76,9 @@ def input_data():
         config_file['stop_loss_amount'] = get_input("Stop Loss Amount ($10): ", 10.0, float)
     
     # INPUT quantity or compound quantity
-    quantity = config_file['compound']['quantity'] if config_file['compound']['enabled'] else get_input("Entry Quantity ($10): ", 10.0, float)
-    config_file['entry_line']['quantity'] = round(quantity / config_file['entry_line']['price'], config_file['quantity_precision'])
+    #quantity = config_file['compound']['quantity'] if config_file['compound']['enabled'] else get_input("Entry Quantity ($10): ", 10.0, float)
+    #config_file['entry_line']['quantity'] = round(quantity / config_file['entry_line']['price'], config_file['quantity_precision'])
+    config_file['entry_line']['quantity'] = round(get_input("Entry Quantity: ", 0.0, float), config_file['quantity_precision'])
 
     # saving grid body    
     config_file['grid_body'] = []

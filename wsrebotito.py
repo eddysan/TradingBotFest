@@ -29,8 +29,10 @@ def on_message(ws, message):
                 case "IN": #the event is entry
                         print(f"IN taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() # read position information at first the position will be same as entry_line
-                        grid.clean_tp_order() # clean take profit order
-                        grid.post_tp_order() # post take profit order
+                        #grid.clean_open_orders() # clean all orders short and long orders
+                        #grid.post_grid_order()
+                        #grid.post_sl_order()
+                        #grid.post_tp_order() # post take profit order
                         grid.write_data_grid()
                     
                 case "GD": #the event taken is in grid
@@ -38,17 +40,15 @@ def on_message(ws, message):
                         grid.update_current_position() #read current position
                         grid.clean_ul_order()
                         grid.post_ul_order()
-                        grid.post_tp_order() # post take profit order
+                        #grid.post_tp_order() # post take profit order
                         grid.write_data_grid() # saving all configuration to json
 
                 case "UL": #the event is unload
                         print(f"UL taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() #read current position
-                        grid.clean_ul_order() # clean unload existing position
-                        grid.clean_grid_order() # clean grid rest orders
-                        grid.clean_tp_order() # clean take profit order
-                        grid.clean_sl_order() # clean stop loss order
                         grid.update_entry_line() # updating entry line from current_line values
+                        grid.clean_open_orders() # clean all open orders
+                        grid.generate_grid() # generate new grid points
                         grid.post_grid_order() # generate new grid and post it, taking entry price as entry and post it
                         grid.post_sl_order() # post stop loss order
                         grid.post_tp_order() # post take profit order

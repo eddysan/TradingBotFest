@@ -1,10 +1,10 @@
 {
-    "operation_code": "10091151-TON-L",
+    "operation_code": "10102249-TON-L",
     "symbol": "TONUSDT",
     "side": "LONG",
     "grid_distance": 0.02,
     "quantity_increment": 0.4,
-    "stop_loss_amount": 11.0,
+    "stop_loss_amount": 10.0,
     "price_precision": 7,
     "quantity_precision": 1,
     "tick_size": 0.0001,
@@ -18,57 +18,57 @@
         "entry": "IN",
         "side": "BUY",
         "position_side": "LONG",
-        "price": 5.115742630386,
-        "quantity": 1.8,
-        "cost": 9.21,
-        "order_id": 0,
+        "price": 5.09,
+        "quantity": 2.0,
+        "cost": 10.18,
+        "order_id": 3185938755,
         "status": "NEW",
-        "client_order_id": ""
+        "client_order_id": "IN_10102249-TON-L_d5d04"
     },
     "take_profit_line": {
         "entry": "TP",
         "side": "SELL",
         "position_side": "LONG",
         "distance": 0.05,
-        "price": 5.3715,
+        "price": 5.3445,
         "quantity": 0,
         "cost": 0,
-        "order_id": 3185125649,
+        "order_id": 3185938992,
         "status": "NEW",
-        "client_order_id": "TP_10091151-TON-L_4e425"
+        "client_order_id": "TP_10102249-TON-L_e1569"
     },
     "unload_line": {
         "entry": "UL",
         "side": "SELL",
         "position_side": "LONG",
         "distance": 0.005,
-        "price": 5.1413,
-        "quantity": 2.8,
+        "price": 0,
+        "quantity": 0,
         "cost": 0,
-        "order_id": 3174423161,
+        "order_id": 0,
         "status": "NEW",
-        "client_order_id": "UL_10091151-TON-L_5863d"
+        "client_order_id": ""
     },
     "stop_loss_line": {
         "entry": "SL",
         "side": "SELL",
         "position_side": "LONG",
-        "distance": 0.1316,
-        "price": 4.4424,
+        "distance": 0.1225,
+        "price": 4.4666,
         "quantity": 0,
         "cost": 0,
-        "order_id": 3185125642,
+        "order_id": 3185938959,
         "status": "NEW",
-        "client_order_id": "SL_10091151-TON-L_c0a21"
+        "client_order_id": "SL_10102249-TON-L_16c96"
     },
     "average_line": {
-        "price": 4.6988,
-        "quantity": 42.9,
-        "sl_distance": 5.456930629315068
+        "price": 4.6758,
+        "quantity": 47.8,
+        "sl_distance": 4.474208069645881
     },
     "current_line": {
-        "price": 5.115742630386,
-        "quantity": 1.8,
+        "price": 5.09,
+        "quantity": 2.0,
         "position_side": "LONG"
     },
     "grid_body": [
@@ -76,67 +76,67 @@
             "entry": 1,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 5.0134,
-            "quantity": 2.5,
-            "cost": 12.63,
-            "order_id": 3185125280,
+            "price": 4.9882,
+            "quantity": 2.8,
+            "cost": 13.97,
+            "order_id": 3185938808,
             "status": "NEW",
-            "client_order_id": "GD_10091151-TON-L_05a47"
+            "client_order_id": "GD_10102249-TON-L_ac3f5"
         },
         {
             "entry": 2,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 4.9132,
-            "quantity": 3.5,
-            "cost": 17.33,
-            "order_id": 3185125328,
+            "price": 4.8884,
+            "quantity": 3.9,
+            "cost": 19.16,
+            "order_id": 3185938865,
             "status": "NEW",
-            "client_order_id": "GD_10091151-TON-L_0019c"
+            "client_order_id": "GD_10102249-TON-L_12824"
         },
         {
             "entry": 3,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 4.8149,
-            "quantity": 4.9,
-            "cost": 23.78,
-            "order_id": 3185125350,
+            "price": 4.7907,
+            "quantity": 5.5,
+            "cost": 26.29,
+            "order_id": 3185938891,
             "status": "NEW",
-            "client_order_id": "GD_10091151-TON-L_74cb1"
+            "client_order_id": "GD_10102249-TON-L_7270c"
         },
         {
             "entry": 4,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 4.7186,
-            "quantity": 6.9,
-            "cost": 32.63,
-            "order_id": 3185125393,
+            "price": 4.6949,
+            "quantity": 7.7,
+            "cost": 36.07,
+            "order_id": 3185938908,
             "status": "NEW",
-            "client_order_id": "GD_10091151-TON-L_9d281"
+            "client_order_id": "GD_10102249-TON-L_9bf01"
         },
         {
             "entry": 5,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 4.6242,
-            "quantity": 9.7,
-            "cost": 44.77,
-            "order_id": 3185125617,
+            "price": 4.601,
+            "quantity": 10.8,
+            "cost": 49.49,
+            "order_id": 3185938932,
             "status": "NEW",
-            "client_order_id": "GD_10091151-TON-L_22446"
+            "client_order_id": "GD_10102249-TON-L_9584e"
         },
         {
             "entry": 6,
             "side": "BUY",
             "position_side": "LONG",
-            "price": 4.5317,
-            "quantity": 13.6,
-            "cost": 61.42,
-            "order_id": 3185125629,
+            "price": 4.5089,
+            "quantity": 15.1,
+            "cost": 67.9,
+            "order_id": 3185938939,
             "status": "NEW",
-            "client_order_id": "GD_10091151-TON-L_89f9b"
+            "client_order_id": "GD_10102249-TON-L_a96a7"
         }
     ]
 }

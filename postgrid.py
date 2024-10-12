@@ -1,46 +1,26 @@
-from functions import *
+import json
 from binance.client import Client
+import time
+from packages import *
 
-# status for each instance of bot
-status = 'ORDER'
+# input data from terminal and save to operations folder
+operation_code = input_data()
 
-# load default config from json
-data_grid = load_config('config.json')
+# Basic logging configuration
+logging.basicConfig(
+    level=logging.NOTSET,  # Set to DEBUG to capture all levels of log messages
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(f"logs/{operation_code}.log"),  # Logs to a file
+        #adalogging.StreamHandler()  # Logs to the console
+    ]
+)
 
-# Set up authentication
-binance_config_file = load_config('../credentials.json')  
-api_key = binance_config_file['api_key']
-api_secret = binance_config_file['api_secret']
-
-client = Client(api_key, api_secret)
-
-# getting account balance from the wallet and set compound amount to 10% of the account
-data_grid['sl_compound'] = round(float(get_account_balance(client)) * 0.10, 2)
-
-# fills external data from terminal
-data_grid = get_external_data(client, data_grid)
-
-
-# default variables to dev
-#data_grid['token_pair'] = 'NEIROUSDT'
-#data_grid['grid_side'] = 'LONG'
-#data_grid['grid_distance'] = 0.02
-#data_grid['token_increment'] = 0.40
-#data_grid['sl_amount'] = 10.00
-#data_grid['entry_price'] = 0.0011000
-#data_grid['entry_quantity'] = 9090
-
-
-# You can then proceed to use the generate function
-data_grid = generate(data_grid)
-#print(data_grid)
-    
-
-#data_grid['entry_order'] = post_order(client, data_grid, 'entry_order')
-#print(data_grid)
-
-data_grid['body_order'] = post_order(client, data_grid,'body_order')
-#print(data_grid)
-
-#data_grid['sl_order'] = post_stop_loss_order(client, data_grid)
+grid = LUGrid(operation_code)
+grid.post_entry_order()
+grid.generate_grid()
+grid.post_grid_order()
+grid.post_sl_order()
+grid.post_tp_order()
+grid.write_data_grid()
 

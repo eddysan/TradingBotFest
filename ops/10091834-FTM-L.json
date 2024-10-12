@@ -1,0 +1,142 @@
+{
+    "operation_code": "10091834-FTM-L",
+    "symbol": "FTMUSDT",
+    "side": "LONG",
+    "grid_distance": 0.02,
+    "quantity_increment": 0.4,
+    "stop_loss_amount": 10.0,
+    "price_precision": 6,
+    "quantity_precision": 0,
+    "tick_size": 0.0001,
+    "step_size": 1.0,
+    "compound": {
+        "enabled": false,
+        "risk": 0.1,
+        "quantity": 0
+    },
+    "entry_line": {
+        "entry": "IN",
+        "side": "BUY",
+        "position_side": "LONG",
+        "price": 0.65,
+        "quantity": 15.0,
+        "cost": 9.75,
+        "order_id": 23414562461,
+        "status": "NEW",
+        "client_order_id": "IN_10091834-FTM-L_fb4a5"
+    },
+    "take_profit_line": {
+        "entry": "TP",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.05,
+        "price": 0.6825,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 23414563000,
+        "status": "NEW",
+        "client_order_id": "TP_10091834-FTM-L_cfad1"
+    },
+    "unload_line": {
+        "entry": "UL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.005,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "stop_loss_line": {
+        "entry": "SL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.1243,
+        "price": 0.5692,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 23414562721,
+        "status": "NEW",
+        "client_order_id": "SL_10091834-FTM-L_9d843"
+    },
+    "average_line": {
+        "price": 0.5971,
+        "quantity": 358.0,
+        "sl_distance": 4.678104319855091
+    },
+    "current_line": {
+        "price": 0.65,
+        "quantity": 15.0,
+        "position_side": "LONG"
+    },
+    "grid_body": [
+        {
+            "entry": 1,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.637,
+            "quantity": 21.0,
+            "cost": 13.38,
+            "order_id": 23414562481,
+            "status": "NEW",
+            "client_order_id": "GD_10091834-FTM-L_518aa"
+        },
+        {
+            "entry": 2,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.6243,
+            "quantity": 29.0,
+            "cost": 18.35,
+            "order_id": 23414562490,
+            "status": "NEW",
+            "client_order_id": "GD_10091834-FTM-L_d371a"
+        },
+        {
+            "entry": 3,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.6118,
+            "quantity": 41.0,
+            "cost": 25.18,
+            "order_id": 23414562503,
+            "status": "NEW",
+            "client_order_id": "GD_10091834-FTM-L_e6dfb"
+        },
+        {
+            "entry": 4,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.5995,
+            "quantity": 58.0,
+            "cost": 34.55,
+            "order_id": 23414562540,
+            "status": "NEW",
+            "client_order_id": "GD_10091834-FTM-L_285c1"
+        },
+        {
+            "entry": 5,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.5875,
+            "quantity": 81.0,
+            "cost": 47.4,
+            "order_id": 23414562667,
+            "status": "NEW",
+            "client_order_id": "GD_10091834-FTM-L_9a738"
+        },
+        {
+            "entry": 6,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0.5758,
+            "quantity": 113.0,
+            "cost": 65.03,
+            "order_id": 23414562712,
+            "status": "NEW",
+            "client_order_id": "GD_10091834-FTM-L_c5d43"
+        }
+    ]
+}

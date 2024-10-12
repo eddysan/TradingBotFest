@@ -1,0 +1,142 @@
+{
+    "operation_code": "10101158-DOGE-S",
+    "symbol": "DOGEUSDT",
+    "side": "SHORT",
+    "grid_distance": 0.02,
+    "quantity_increment": 0.4,
+    "stop_loss_amount": 10.0,
+    "price_precision": 6,
+    "quantity_precision": 0,
+    "tick_size": 1e-05,
+    "step_size": 1.0,
+    "compound": {
+        "enabled": false,
+        "risk": 0.1,
+        "quantity": 0
+    },
+    "entry_line": {
+        "entry": "IN",
+        "side": "SELL",
+        "position_side": "SHORT",
+        "price": 0.109,
+        "quantity": 92.0,
+        "cost": 10.03,
+        "order_id": 51927908834,
+        "status": "NEW",
+        "client_order_id": "IN_10101158-DOGE-S_aea65"
+    },
+    "take_profit_line": {
+        "entry": "TP",
+        "side": "BUY",
+        "position_side": "SHORT",
+        "distance": 0.05,
+        "price": 0.10355,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 51927909359,
+        "status": "NEW",
+        "client_order_id": "TP_10101158-DOGE-S_81159"
+    },
+    "unload_line": {
+        "entry": "UL",
+        "side": "BUY",
+        "position_side": "SHORT",
+        "distance": 0.005,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "stop_loss_line": {
+        "entry": "SL",
+        "side": "BUY",
+        "position_side": "SHORT",
+        "distance": 0.1299,
+        "price": 0.12316,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 51927909339,
+        "status": "NEW",
+        "client_order_id": "SL_10101158-DOGE-S_bb386"
+    },
+    "average_line": {
+        "price": 0.1186,
+        "quantity": 2194.0,
+        "sl_distance": 3.843073474953153
+    },
+    "current_line": {
+        "price": 0.109,
+        "quantity": 92.0,
+        "position_side": "SHORT"
+    },
+    "grid_body": [
+        {
+            "entry": 1,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.11118,
+            "quantity": 129.0,
+            "cost": 14.32,
+            "order_id": 51927908850,
+            "status": "NEW",
+            "client_order_id": "GD_10101158-DOGE-S_0df40"
+        },
+        {
+            "entry": 2,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.1134,
+            "quantity": 180.0,
+            "cost": 20.45,
+            "order_id": 51927908874,
+            "status": "NEW",
+            "client_order_id": "GD_10101158-DOGE-S_01961"
+        },
+        {
+            "entry": 3,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.11567,
+            "quantity": 252.0,
+            "cost": 29.2,
+            "order_id": 51927909141,
+            "status": "NEW",
+            "client_order_id": "GD_10101158-DOGE-S_85cfa"
+        },
+        {
+            "entry": 4,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.11799,
+            "quantity": 353.0,
+            "cost": 41.7,
+            "order_id": 51927909201,
+            "status": "NEW",
+            "client_order_id": "GD_10101158-DOGE-S_35ece"
+        },
+        {
+            "entry": 5,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.12034,
+            "quantity": 495.0,
+            "cost": 59.55,
+            "order_id": 51927909242,
+            "status": "NEW",
+            "client_order_id": "GD_10101158-DOGE-S_abad0"
+        },
+        {
+            "entry": 6,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.12275,
+            "quantity": 693.0,
+            "cost": 85.03,
+            "order_id": 51927909282,
+            "status": "NEW",
+            "client_order_id": "GD_10101158-DOGE-S_99e41"
+        }
+    ]
+}

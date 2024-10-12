@@ -1,0 +1,140 @@
+{
+    "operation_code": "10092214-ETH-L",
+    "symbol": "ETHUSDT",
+    "side": "LONG",
+    "grid_distance": 0.02,
+    "quantity_increment": 0.4,
+    "stop_loss_amount": 22.0,
+    "price_precision": 2,
+    "quantity_precision": 3,
+    "tick_size": 0.01,
+    "step_size": 0.001,
+    "compound": {
+        "enabled": false,
+        "risk": 0.1,
+        "quantity": 0
+    },
+    "entry_line": {
+        "entry": "IN",
+        "side": "BUY",
+        "position_side": "LONG",
+        "price": 2340.0,
+        "quantity": 0.004,
+        "cost": 9.36,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "take_profit_line": {
+        "entry": "TP",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.05,
+        "price": 2457.0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 8389765744531399061,
+        "status": "NEW",
+        "client_order_id": "TP_10092214-ETH-L_1ce07"
+    },
+    "unload_line": {
+        "entry": "UL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.005,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "stop_loss_line": {
+        "entry": "SL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.1601,
+        "price": 1965.45,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 8389765744531396704,
+        "status": "NEW",
+        "client_order_id": "SL_10092214-ETH-L_fbe5c"
+    },
+    "average_line": {
+        "price": 2077.13,
+        "quantity": 0.197,
+        "sl_distance": 5.376414904389869
+    },
+    "current_line": {
+        "price": 2340.0,
+        "quantity": 0.004,
+        "position_side": "LONG"
+    },
+    "grid_body": [
+        {
+            "entry": 1,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 2293.2,
+            "quantity": 0.006,
+            "cost": 12.84
+        },
+        {
+            "entry": 2,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 2247.34,
+            "quantity": 0.008,
+            "cost": 17.62
+        },
+        {
+            "entry": 3,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 2202.39,
+            "quantity": 0.011,
+            "cost": 24.17
+        },
+        {
+            "entry": 4,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 2158.34,
+            "quantity": 0.015,
+            "cost": 33.17
+        },
+        {
+            "entry": 5,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 2115.17,
+            "quantity": 0.022,
+            "cost": 45.5
+        },
+        {
+            "entry": 6,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 2072.87,
+            "quantity": 0.03,
+            "cost": 62.43
+        },
+        {
+            "entry": 7,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 2031.41,
+            "quantity": 0.042,
+            "cost": 85.66
+        },
+        {
+            "entry": 8,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 1990.79,
+            "quantity": 0.059,
+            "cost": 117.52
+        }
+    ]
+}
