@@ -372,7 +372,7 @@ class LUGrid:
             # Log the placed order details
             logging.debug(f"entry_line posted to binance: {entry_line}")
             logging.debug(f"Binance response: {response}")
-            print(f"{self.data_grid['symbol']} - {entry_line.get('entry', 'N/A')} | {entry_line['price']} | {entry_line['quantity']} | {entry_line.get('cost', 'N/A')} ✔️")
+            print(f"{self.data_grid['symbol']['value']} - {entry_line.get('entry', 'N/A')} | {entry_line['price']} | {entry_line['quantity']} | {entry_line.get('cost', 'N/A')} ✔️")
 
         except Exception as e:
             logging.exception(f"Error placing entry_line order: {entry_line} \n {e}")
@@ -385,7 +385,7 @@ class LUGrid:
     def clean_grid_order(self):
         
         logging.info("CLEANING ACTIVE GRID ORDERS...")
-        dg_symbol = self.data_grid['symbol']
+        dg_symbol = self.data_grid['symbol']['value']
         order_list = self.data_grid.get('grid_body', [])
 
         if not order_list:
@@ -446,7 +446,7 @@ class LUGrid:
         # Check if there is an existing stop loss order to cancel
         if order_id:
             try:
-                self.client.futures_cancel_order(symbol=self.data_grid['symbol'], orderId=order_id)
+                self.client.futures_cancel_order(symbol=self.data_grid['symbol']['value'], orderId=order_id)
                 self.data_grid['stop_loss_line']['price'] = 0
                 self.data_grid['stop_loss_line']['quantity'] = 0
                 self.data_grid['stop_loss_line']['order_id'] = 0
@@ -503,7 +503,7 @@ class LUGrid:
         # Check if there is an existing unload order to cancel
         if order_id:
             try:
-                self.client.futures_cancel_order(symbol=self.data_grid['symbol'], orderId=order_id)
+                self.client.futures_cancel_order(symbol=self.data_grid['symbol']['value'], orderId=order_id)
                 self.data_grid['take_profit_line']['price'] = 0
                 self.data_grid['take_profit_line']['quantity'] = 0
                 self.data_grid['take_profit_line']['order_id'] = 0
@@ -552,16 +552,16 @@ class LUGrid:
     # clean unload order
     def clean_ul_order(self):
         logging.info("CLEANING UNLOAD LINE...")
-        order_id = self.data_grid['unload_line'].get('order_id', 0)
+        order_id = self.data_grid['unload_line']['order_id']
     
         # Check if there is an existing unload order to cancel
         if order_id:
             try:
-                response = self.client.futures_cancel_order(symbol=self.data_grid['symbol'], orderId=order_id)
-                self.data_grid['unload_line']['price'] = 0
-                self.data_grid['unload_line']['quantity'] = 0
-                self.data_grid['unload_line']['order_id'] = 0
-                self.data_grid['unload_line']['client_order_id'] = "UL_"
+                response = self.client.futures_cancel_order(symbol=self.data_grid['symbol']['value'], orderId=order_id)
+                #self.data_grid['unload_line']['price'] = 0
+                #self.data_grid['unload_line']['quantity'] = 0
+                #self.data_grid['unload_line']['order_id'] = 0
+                #self.data_grid['unload_line']['client_order_id'] = "UL_"
                 logging.debug(f"unload_line to cancel: {self.data_grid['unload_line']}")
                 logging.debug(f"canceling unload_line, binance response: {response}")
             
