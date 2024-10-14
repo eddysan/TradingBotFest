@@ -155,7 +155,7 @@ class LUGrid:
         
     @property
     def symbol(self):
-        return self.data_grid['symbol']
+        return self.data_grid['symbol']['value']
     
     # read data grid in order to upload config
     def read_data_grid(self):
