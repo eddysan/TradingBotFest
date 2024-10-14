@@ -97,8 +97,28 @@ def input_data(config_file):
         if config_file['entry_quantity']['on_stable'] == False: # if on_stable is false, then the input will get quantity as tokens
             config_file['entry_quantity']['value'] = round(get_input(f"Entry Quantity of ({config_file['symbol']['value']}): ", 0.0, float), config_file['quantity_precision'])
     
-    # saving grid body    
+    # cleaning grid body    
     config_file['grid_body'] = []
+    
+    # initialising entry line
+    config_file['entry_line']['price'] = config_file['entry_price']['value']
+    config_file['entry_line']['quantity'] = config_file['entry_quantity']['value']
+    config_file['entry_line']["side"] = 'BUY' if config_file['side']['value'] == 'LONG' else 'SELL'
+    config_file['entry_line']["position_side"] = config_file['side']['value']
+    config_file['entry_line']["cost"] = round(config_file['entry_line']["price"] * config_file['entry_line']["quantity"], 2)
+                           
+    # filling take_profit_line
+    config_file['take_profit_line']['side'] = 'SELL' if config_file['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the TP should be SELL and viceversa
+    config_file['take_profit_line']['position_side'] = config_file['side']['value'] #mandatory for hedge mode, LONG or SHORT
+        
+    # unload_line data
+    config_file['unload_line']['side'] = 'SELL' if config_file['side']['value'] == 'LONG' else 'BUY' # limit order to unload plus quantity of tokens
+    config_file['unload_line']['position_side'] = config_file['side']['value']
+        
+    # stop_loss_line filling data
+    config_file['stop_loss_line']['side'] = 'SELL' if config_file['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the SL should be SELL
+    config_file['stop_loss_line']['position_side'] = config_file['side']['value']
+
     
     # Generate operation code
     #operation_code = gen_date_code() + "-" + str(config_file['symbol']['value'])[:-4] + "-" + str(config_file['side']['value'])[0]
@@ -225,23 +245,6 @@ class LUGrid:
         logging.info("GENERATING DATA_GRID...")
         
         # filling initial data to entry_line
-        self.data_grid['entry_line']['price'] = self.data_grid['entry_price']['value']
-        self.data_grid['entry_line']['quantity'] = self.data_grid['entry_quantity']['value']
-        self.data_grid['entry_line']["side"] = 'BUY' if self.data_grid['side']['value'] == 'LONG' else 'SELL'
-        self.data_grid['entry_line']["position_side"] = self.data_grid['side']['value']
-        self.data_grid['entry_line']["cost"] = round(self.data_grid['entry_line']["price"] * self.data_grid['entry_line']["quantity"], 2)
-                           
-        # filling take_profit_line
-        self.data_grid['take_profit_line']['side'] = 'SELL' if self.data_grid['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the TP should be SELL and viceversa
-        self.data_grid['take_profit_line']['position_side'] = self.data_grid['side']['value'] #mandatory for hedge mode, LONG or SHORT
-        
-        # unload_line data
-        self.data_grid['unload_line']['side'] = 'SELL' if self.data_grid['side']['value'] == 'LONG' else 'BUY' # limit order to unload plus quantity of tokens
-        self.data_grid['unload_line']['position_side'] = self.data_grid['side']['value']
-        
-        # stop_loss_line filling data
-        self.data_grid['stop_loss_line']['side'] = 'SELL' if self.data_grid['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the SL should be SELL
-        self.data_grid['stop_loss_line']['position_side'] = self.data_grid['side']['value']
         
         # current line is the pivot that store que current price in operation, this will change if the grid has chaged
         self.data_grid['current_line']['price'] = self.data_grid['entry_line']['price']
@@ -330,16 +333,14 @@ class LUGrid:
     # update entry line data taking current line as data, and the current position will be the new entry
     def update_entry_line(self):
         logging.info("UPDATING ENTRY LINE FROM CURRENT LINE...")
-        current_line = self.data_grid['current_line']
-        entry_line = self.data_grid['entry_line']
     
         # Update entry line with current line values
-        entry_line['price'] = current_line['price']
-        entry_line['quantity'] = current_line['quantity']
-        entry_line['cost'] = round(entry_line['price'] * entry_line['quantity'], 2)
+        self.data_grid['entry_line']['price'] = self.data_grid['current_line']['price']
+        self.data_grid['entry_line']['quantity'] = self.data_grid['current_line']['quantity']
+        self.data_grid['entry_line']['cost'] = round(self.data_grid['entry_line']['price'] * self.data_grid['entry_line']['quantity'], 2)
         
         logging.debug(f"current_line: {self.data_grid['current_line']}")
-        logging.debug(f"entry_line: {self.data_grid['entry_line']}")
+        logging.debug(f"entry_line updated: {self.data_grid['entry_line']}")
         
         return None
     
@@ -647,7 +648,7 @@ class LUGrid:
 
     def update_current_position(self):
         
-        logging.info("UPDATING CURRENT POSITION...")
+        logging.info("UPDATING CURRENT POSITION FROM BINANCE...")
         
         try:
             # Fetch futures position information

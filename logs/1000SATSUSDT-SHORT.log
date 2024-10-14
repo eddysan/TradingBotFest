@@ -76,3 +76,23 @@ Traceback (most recent call last):
 bdb.BdbQuit
 2024-10-13 21:57:22,918 - root - INFO - WRITTING DATA_GRID FILE...
 2024-10-13 21:57:22,922 - root - INFO - Successfully saved data_grid to ops/1000SATSUSDT-SHORT.json.
+2024-10-13 23:55:12,319 - root - INFO - READING DATA_GRID FILE...
+2024-10-13 23:55:12,325 - root - INFO - Successfully loaded data_grid file: ops/1000SATSUSDT-SHORT.json
+2024-10-13 23:55:12,374 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.binance.com:443
+2024-10-13 23:55:19,071 - urllib3.connectionpool - DEBUG - https://api.binance.com:443 "GET /api/v3/ping HTTP/11" 200 2
+2024-10-13 23:55:25,806 - root - INFO - UPDATING CURRENT POSITION...
+2024-10-13 23:55:25,888 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): fapi.binance.com:443
+2024-10-13 23:55:26,810 - urllib3.connectionpool - DEBUG - https://fapi.binance.com:443 "GET /fapi/v2/positionRisk?symbol=1000SATSUSDT&timestamp=1728878125822&signature=c12539ef3a24447b5068f3421d61fe2a42c287f2b4648306100c9a3b0c5317ce HTTP/11" 200 None
+2024-10-13 23:55:26,821 - root - DEBUG - Current position from Binance: {'symbol': '1000SATSUSDT', 'positionAmt': '-86330', 'entryPrice': '2.845527624E-4', 'breakEvenPrice': '2.852859407E-4', 'markPrice': '0.00028788', 'unRealizedProfit': '-0.28747890', 'liquidationPrice': '0.00161748', 'leverage': '75', 'maxNotionalValue': '10000', 'marginType': 'cross', 'isolatedMargin': '0.00000000', 'isAutoAddMargin': 'false', 'positionSide': 'SHORT', 'notional': '-24.85268040', 'isolatedWallet': '0', 'updateTime': 1728877085916, 'isolated': False, 'adlQuantile': 2}
+2024-10-13 23:55:26,823 - root - DEBUG - Current position on current_line: {'price': 0.0002846, 'quantity': 86330.0, 'position_side': 'SHORT'}
+2024-10-13 23:56:07,120 - root - INFO - CLEANING UNLOAD LINE...
+2024-10-13 23:56:22,432 - root - INFO - POSTING UNLOAD ORDER...
+2024-10-13 23:58:13,821 - root - DEBUG - unload_line to post: {'entry': 'UL', 'side': 'BUY', 'position_side': 'SHORT', 'distance': 0.005, 'price': 0.0002832, 'quantity': 50359.0, 'cost': 0, 'order_id': 0, 'status': 'NEW', 'client_order_id': ''}
+2024-10-13 23:58:22,939 - urllib3.connectionpool - DEBUG - https://fapi.binance.com:443 "POST /fapi/v1/order?newClientOrderId=UL_1000SATSUSDT-SHORT_e5be3&positionSide=SHORT&price=0.0002832&quantity=50359.0&side=BUY&symbol=1000SATSUSDT&timeInForce=GTC&timestamp=1728878302138&type=LIMIT&signature=336db696150c0711f475b2001f6345509ced1a8c2c5ab3a03f3fd5f773942e67 HTTP/11" 200 None
+2024-10-13 23:58:39,733 - root - DEBUG - unload_line response from binance: {'orderId': 6790795802, 'symbol': '1000SATSUSDT', 'status': 'NEW', 'clientOrderId': 'UL_1000SATSUSDT-SHORT_e5be3', 'price': '0.0002832', 'avgPrice': '0.00', 'origQty': '50359', 'executedQty': '0', 'cumQty': '0', 'cumQuote': '0.0000000', 'timeInForce': 'GTC', 'type': 'LIMIT', 'reduceOnly': True, 'closePosition': False, 'side': 'BUY', 'positionSide': 'SHORT', 'stopPrice': '0.0000000', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'LIMIT', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'NONE', 'goodTillDate': 0, 'updateTime': 1728878303042}
+2024-10-13 23:58:48,071 - root - INFO - POSTING TAKE PROFIT ORDER TO BINANCE...
+2024-10-13 23:58:48,903 - urllib3.connectionpool - DEBUG - https://fapi.binance.com:443 "POST /fapi/v1/order?closePosition=True&newClientOrderId=TP_1000SATSUSDT-SHORT_e0706&positionSide=SHORT&side=BUY&stopPrice=0.0002672&symbol=1000SATSUSDT&timestamp=1728878328076&type=TAKE_PROFIT_MARKET&signature=fa52e7b467b51df53e3d7943e273b517e64769459645fcf8c0f4a0db28a34ec8 HTTP/11" 200 None
+2024-10-13 23:58:48,906 - root - DEBUG - take_profit_line posted to binance: {'entry': 'TP', 'side': 'BUY', 'position_side': 'SHORT', 'distance': 0.05, 'price': 0.0002672, 'quantity': 0, 'cost': 0, 'order_id': 6790808444, 'status': 'NEW', 'client_order_id': 'TP_1000SATSUSDT-SHORT_e0706'}
+2024-10-13 23:58:48,909 - root - DEBUG - take_profit_line binance response: {'orderId': 6790808444, 'symbol': '1000SATSUSDT', 'status': 'NEW', 'clientOrderId': 'TP_1000SATSUSDT-SHORT_e0706', 'price': '0.0000000', 'avgPrice': '0.00', 'origQty': '0', 'executedQty': '0', 'cumQty': '0', 'cumQuote': '0.0000000', 'timeInForce': 'GTC', 'type': 'TAKE_PROFIT_MARKET', 'reduceOnly': True, 'closePosition': True, 'side': 'BUY', 'positionSide': 'SHORT', 'stopPrice': '0.0002672', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'TAKE_PROFIT_MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'NONE', 'goodTillDate': 0, 'updateTime': 1728878329010}
+2024-10-13 23:58:51,305 - root - INFO - WRITTING DATA_GRID FILE...
+2024-10-13 23:58:51,345 - root - INFO - Successfully saved data_grid to ops/1000SATSUSDT-SHORT.json.
