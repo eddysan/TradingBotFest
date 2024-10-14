@@ -60,15 +60,11 @@ def on_message(ws, message):
                         print(f"No kind operation")
             
 
-
-
-
-
 def on_error(ws, error):
     print(f"Error: {error}")
 
-def on_close(ws):
-    print("WebSocket connection closed")
+def on_close(ws, close_status_code, close_msg):
+    print(f"WebSocket connection closed: {close_status_code} - {close_msg}")
 
 def on_open(ws):
     print("WebSocket connection established")
