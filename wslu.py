@@ -28,10 +28,6 @@ def on_message(ws, message):
                 case "IN": #the event is entry
                         print(f"IN taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() # read position information at first the position will be same as entry_line
-                        #grid.clean_open_orders() # clean all orders short and long orders
-                        #grid.post_grid_order()
-                        #grid.post_sl_order()
-                        #grid.post_tp_order() # post take profit order
                         grid.write_data_grid()
                     
                 case "GD": #the event taken is in grid
@@ -39,7 +35,6 @@ def on_message(ws, message):
                         grid.update_current_position() #read current position
                         grid.clean_ul_order()
                         grid.post_ul_order()
-                        #grid.post_tp_order() # post take profit order
                         grid.write_data_grid() # saving all configuration to json
 
                 case "UL": #the event is unload
