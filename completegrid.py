@@ -6,6 +6,8 @@ from packages import *
 # Reading default config file
 config_file = read_data_grid("config.json")
 
+config_file['entry_quantity']['on_stable'] = False # the imput process will get tokens, not USDT
+
 # input data from terminal and save to operations folder
 operation_code = input_data(config_file)
 
@@ -21,7 +23,6 @@ logging.basicConfig(
 
 grid = LUGrid(operation_code)
 grid.generate_grid()
-grid.post_entry_order()
 grid.post_grid_order()
 grid.post_sl_order()
 grid.post_tp_order()

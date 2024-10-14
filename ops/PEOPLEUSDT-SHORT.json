@@ -1,0 +1,166 @@
+{
+    "operation_code": "PEOPLEUSDT-SHORT",
+    "symbol": {
+        "input": true,
+        "value": "PEOPLEUSDT"
+    },
+    "side": {
+        "input": true,
+        "value": "SHORT"
+    },
+    "grid_distance": {
+        "input": true,
+        "value": 0.02
+    },
+    "quantity_increment": {
+        "input": true,
+        "value": 0.4
+    },
+    "stop_loss_amount": {
+        "input": true,
+        "value": 10.0
+    },
+    "entry_price": {
+        "input": true,
+        "value": 0.07992
+    },
+    "entry_quantity": {
+        "input": true,
+        "value": 127.0,
+        "on_stable": false
+    },
+    "price_precision": 5,
+    "quantity_precision": 0,
+    "tick_size": 1e-05,
+    "step_size": 1.0,
+    "compound": {
+        "enabled": false,
+        "risk": 0.1,
+        "quantity": 0
+    },
+    "entry_line": {
+        "entry": "IN",
+        "side": "SELL",
+        "position_side": "SHORT",
+        "price": 0.07992,
+        "quantity": 127.0,
+        "cost": 10.15,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "take_profit_line": {
+        "entry": "TP",
+        "side": "BUY",
+        "position_side": "SHORT",
+        "distance": 0.05,
+        "price": 0.07592,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 10193334833,
+        "status": "NEW",
+        "client_order_id": "TP_PEOPLEUSDT-SHORT_320bf"
+    },
+    "unload_line": {
+        "entry": "UL",
+        "side": "BUY",
+        "position_side": "SHORT",
+        "distance": 0.005,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "stop_loss_line": {
+        "entry": "SL",
+        "side": "BUY",
+        "position_side": "SHORT",
+        "distance": 0.1294,
+        "price": 0.09026,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 10193334804,
+        "status": "NEW",
+        "client_order_id": "SL_PEOPLEUSDT-SHORT_68d61"
+    },
+    "average_line": {
+        "price": 0.08696,
+        "quantity": 3029.0,
+        "sl_distance": 3.796480692769648
+    },
+    "current_line": {
+        "price": 0.07992,
+        "quantity": 127.0,
+        "position_side": "SHORT"
+    },
+    "grid_body": [
+        {
+            "entry": 1,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.08152,
+            "quantity": 178.0,
+            "cost": 14.49,
+            "order_id": 10193334638,
+            "status": "NEW",
+            "client_order_id": "GD_PEOPLEUSDT-SHORT_96fa9"
+        },
+        {
+            "entry": 2,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.08315,
+            "quantity": 249.0,
+            "cost": 20.7,
+            "order_id": 10193334659,
+            "status": "NEW",
+            "client_order_id": "GD_PEOPLEUSDT-SHORT_96d03"
+        },
+        {
+            "entry": 3,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.08481,
+            "quantity": 348.0,
+            "cost": 29.56,
+            "order_id": 10193334670,
+            "status": "NEW",
+            "client_order_id": "GD_PEOPLEUSDT-SHORT_2c42d"
+        },
+        {
+            "entry": 4,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.08651,
+            "quantity": 488.0,
+            "cost": 42.21,
+            "order_id": 10193334684,
+            "status": "NEW",
+            "client_order_id": "GD_PEOPLEUSDT-SHORT_0ef22"
+        },
+        {
+            "entry": 5,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.08824,
+            "quantity": 683.0,
+            "cost": 60.27,
+            "order_id": 10193334699,
+            "status": "NEW",
+            "client_order_id": "GD_PEOPLEUSDT-SHORT_06aea"
+        },
+        {
+            "entry": 6,
+            "side": "SELL",
+            "position_side": "SHORT",
+            "price": 0.09,
+            "quantity": 956.0,
+            "cost": 86.07,
+            "order_id": 10193334709,
+            "status": "NEW",
+            "client_order_id": "GD_PEOPLEUSDT-SHORT_a3983"
+        }
+    ]
+}

@@ -6,41 +6,46 @@ from binance.client import Client
 import math
 import logging
 
+# Reading json file, the json_file_path should include directory + file + .json extension
+def read_data_grid(json_file_path):
+    try:
+        # Attempt to load file
+        if os.path.isfile(json_file_path):
+            with open(json_file_path, 'r') as file:
+                config_file = json.load(file)
+                logging.info(f"Successfully loaded data_grid file: {json_file_path}")
+                return config_file
+        else:
+            logging.warning(f"data_grid file '{json_file_path}' not found")
+    except (FileNotFoundError, KeyError):
+        logging.exception("Error: Invalid config.json file or not found. Please check the file path and format.")
+        print(f"Error: Invalid {json_file_path} file or not found. Please check the file path and format.")
+        return 
 
-# generate operation code
-def gen_date_code():
-    # Get the current date and time
-    now = datetime.now()
-
-    # Format the date and time as "YYYYMMDDHHmm"
-    formatted_code = now.strftime("%m%d%H%M")
-
-    return formatted_code
+# Writting json data grid file
+def write_data_grid(directory, file_name, data_grid):
+    os.makedirs(directory, exist_ok=True) # if directory doesn't exist, it will be created
+    xfile = f"{directory}/{file_name}" # file name should have extension to
+    with open(xfile, 'w') as file:
+        json.dump(data_grid, file, indent=4)  # Pretty-print JSON
+    return None
 
 # input data from console
-def input_data():
+def input_data(config_file):
     # Helper to safely get user input with default fallback
     def get_input(prompt, default_value=None, cast_func=str):
         user_input = input(prompt).strip()
         return cast_func(user_input) if user_input else default_value
-
-    # Reading default config file
-    try:
-        with open('config.json', 'r') as file:
-            config_file = json.load(file)
-    except (FileNotFoundError, KeyError):
-        logging.exception("Error: Invalid config.json file or not found. Please check the file path and format.")
-        print("Error: Invalid config.json file or not found. Please check the file path and format.")
-        return
     
     client = get_connection()  # Open Binance connection
 
-    # INPUT symbol
-    config_file['symbol'] = get_input("Token Pair like (BTC): ", "BTC").upper() + "USDT"
+    # Asking for INPUT symbol
+    if config_file['symbol']['input']:   
+        config_file['symbol']['value'] = get_input("Token Pair like (BTC): ", "BTC").upper() + "USDT"
 
     # Getting precisions for the symbol
     info = client.futures_exchange_info()['symbols']
-    symbol_info = next((x for x in info if x['symbol'] == config_file['symbol']), None)
+    symbol_info = next((x for x in info if x['symbol'] == config_file['symbol']['value']), None)
     
     # Retrieve precision filters
     for f in symbol_info['filters']:
@@ -53,72 +58,56 @@ def input_data():
     config_file['quantity_precision'] = symbol_info['quantityPrecision']
 
     # INPUT side (default to LONG)
-    config_file['side'] = get_input("Grid Side (LONG): ", "LONG", str).upper()
+    if config_file['side']['input']:
+        config_file['side']['value'] = get_input("Grid Side (LONG): ", "LONG", str).upper()
 
     # INPUT entry price
-    tick_increment = int(abs(math.log10(config_file['tick_size'])))
-    config_file['entry_line']['price'] = round(get_input("Entry Price: ", 0.0, float), tick_increment)
+    if config_file['entry_price']['input']:
+        tick_increment = int(abs(math.log10(config_file['tick_size'])))
+        config_file['entry_price']['value'] = round(get_input("Entry Price: ", 0.0, float), tick_increment)
 
     # INPUT grid distance
-    config_file['grid_distance'] = get_input("Grid Distance (2%): ", 2.0, float) / 100
+    if config_file['grid_distance']['input']:
+        config_file['grid_distance']['value'] = get_input("Grid Distance (2%): ", 2, float) / 100 # default valur for grid distance is 2%
 
     # INPUT token increment
-    config_file['quantity_increment'] = get_input("Token Increment (40%): ", 40.0, float) / 100
+    if config_file['quantity_increment']['input']:
+        config_file['quantity_increment']['value'] = get_input("Token Increment (40%): ", 40, float) / 100 # default increment is 40%
 
     # Compound calculation
     if config_file['compound']['enabled']:
         # Get wallet balance
         usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
         config_file['compound']['quantity'] = round(float(usdt_balance) * config_file['compound']['risk'], 2)
-        config_file['stop_loss_amount'] = config_file['compound']['quantity']
-    else:
-        # INPUT stop loss amount
-        config_file['stop_loss_amount'] = get_input("Stop Loss Amount ($10): ", 10.0, float)
-    
-    # INPUT quantity or compound quantity
-    quantity = config_file['compound']['quantity'] if config_file['compound']['enabled'] else get_input("Entry Quantity ($10): ", 10.0, float)
-    config_file['entry_line']['quantity'] = round(quantity / config_file['entry_line']['price'], config_file['quantity_precision'])
-    #config_file['entry_line']['quantity'] = round(get_input("Entry Quantity: ", 0.0, float), config_file['quantity_precision'])
+        config_file['stop_loss_amount']['value'] = config_file['compound']['quantity']
+        config_file['entry_quantity']['value'] = round(config_file['compound']['quantity'] / config_file['entry_price']['value'], config_file['quantity_precision']) # convert risk proportion of wallet (compound) to entry quantity
+        config_file['stop_loss_amount']['input'] = False
+        config_file['entry_quantity']['input'] = False
 
+    # INPUT stop_loss_amount
+    if config_file['stop_loss_amount']['input']:
+        config_file['stop_loss_amount']['value'] = get_input("Stop Loss Amount ($10): ", 10.0, float)
+    
+    # INPUT quantity
+    if config_file['entry_quantity']['input']: # if entry quantity is enabled
+        if config_file['entry_quantity']['on_stable'] == True: # if on_stable is enabled, the input will be in USDT not in tokens
+            entry_q = round(get_input("Entry Quantity ($10): ", 10.0, float), 2) # getting quantity in USDT
+            config_file['entry_quantity']['value'] = round(entry_q / config_file['entry_price']['value'], config_file['quantity_precision']) #converting USDT entry to tokens
+
+        if config_file['entry_quantity']['on_stable'] == False: # if on_stable is false, then the input will get quantity as tokens
+            config_file['entry_quantity']['value'] = round(get_input(f"Entry Quantity of ({config_file['symbol']['value']}): ", 0.0, float), config_file['quantity_precision'])
+    
     # saving grid body    
     config_file['grid_body'] = []
-
-
-    # processing entry line
-    config_file['entry_line']["side"] = 'BUY' if config_file['side'] == 'LONG' else 'SELL'
-    config_file['entry_line']["position_side"] = config_file['side']
-    config_file['entry_line']["cost"] = round(config_file['entry_line']["price"] * config_file['entry_line']["quantity"], 2)
-                       
-    # processing take profit
-    config_file['take_profit_line']['side'] = 'SELL' if config_file['side'] == 'LONG' else 'BUY' #if the operation is LONG then the TP should be SELL and viceversa
-    config_file['take_profit_line']['position_side'] = config_file['side'] #mandatory for hedge mode
     
-    # unload
-    config_file['unload_line']['side'] = 'SELL' if config_file['side'] == 'LONG' else 'BUY' # limit order to unload plus quantity of tokens
-    config_file['unload_line']['position_side'] = config_file['side']
-    
-    # stop loss
-    config_file['stop_loss_line']['side'] = 'SELL' if config_file['side'] == 'LONG' else 'BUY' #if the operation is LONG then the SL should be SELL
-    config_file['stop_loss_line']['position_side'] = config_file['side']
-    
-    # current line is the pivot that store que current price in operation, this will change if the grid has chaged
-    config_file['current_line']['price'] = config_file['entry_line']['price']
-    config_file['current_line']['quantity'] = config_file['entry_line']['quantity']
-    config_file['current_line']['position_side'] = config_file['entry_line']['position_side']
-
     # Generate operation code
-    operation_code = gen_date_code() + "-" + str(config_file['symbol'])[:-4] + "-" + str(config_file['side'])[0]
+    #operation_code = gen_date_code() + "-" + str(config_file['symbol']['value'])[:-4] + "-" + str(config_file['side']['value'])[0]
+    operation_code = config_file['symbol']['value'] + "-" + config_file['side']['value']
     config_file['operation_code'] = operation_code
 
-    # Create data_grid file to operations folder
-    os.makedirs('ops', exist_ok=True)
-    xfile = f"ops/{operation_code}.json"
-    with open(xfile, 'w') as file:
-        json.dump(config_file, file, indent=4)  # Pretty-print JSON
-
-    # Create log file
-    
-
+    # writting to data grid
+    write_data_grid('ops', operation_code + ".json", config_file)
+        
     return operation_code
 
 
@@ -157,7 +146,7 @@ class LUGrid:
         self.operation_code = operation_code # operation code
         
         self.data_grid = self.read_data_grid() # reading configuration file
-
+        
         # new connection to binance
         self.client = get_connection()
         
@@ -235,6 +224,30 @@ class LUGrid:
         
         logging.info("GENERATING DATA_GRID...")
         
+        # filling initial data to entry_line
+        self.data_grid['entry_line']['price'] = self.data_grid['entry_price']['value']
+        self.data_grid['entry_line']['quantity'] = self.data_grid['entry_quantity']['value']
+        self.data_grid['entry_line']["side"] = 'BUY' if self.data_grid['side']['value'] == 'LONG' else 'SELL'
+        self.data_grid['entry_line']["position_side"] = self.data_grid['side']['value']
+        self.data_grid['entry_line']["cost"] = round(self.data_grid['entry_line']["price"] * self.data_grid['entry_line']["quantity"], 2)
+                           
+        # filling take_profit_line
+        self.data_grid['take_profit_line']['side'] = 'SELL' if self.data_grid['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the TP should be SELL and viceversa
+        self.data_grid['take_profit_line']['position_side'] = self.data_grid['side']['value'] #mandatory for hedge mode, LONG or SHORT
+        
+        # unload_line data
+        self.data_grid['unload_line']['side'] = 'SELL' if self.data_grid['side']['value'] == 'LONG' else 'BUY' # limit order to unload plus quantity of tokens
+        self.data_grid['unload_line']['position_side'] = self.data_grid['side']['value']
+        
+        # stop_loss_line filling data
+        self.data_grid['stop_loss_line']['side'] = 'SELL' if self.data_grid['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the SL should be SELL
+        self.data_grid['stop_loss_line']['position_side'] = self.data_grid['side']['value']
+        
+        # current line is the pivot that store que current price in operation, this will change if the grid has chaged
+        self.data_grid['current_line']['price'] = self.data_grid['entry_line']['price']
+        self.data_grid['current_line']['quantity'] = self.data_grid['entry_line']['quantity']
+        self.data_grid['current_line']['position_side'] = self.data_grid['entry_line']['position_side']
+        
         # clean and initialize working variables
         self.data_grid['grid_body'] = [] #cleaning grid body before operations
         current_price = self.data_grid['entry_line']["price"]
@@ -244,39 +257,39 @@ class LUGrid:
         self.data_grid['average_line']['quantity'] = self.data_grid['entry_line']["quantity"]
 
         # set stop loss taking the first point, entry line
-        self.data_grid['average_line']['sl_distance'] = (self.data_grid['stop_loss_amount'] * 100) / (self.data_grid['average_line']['price'] *  self.data_grid['average_line']['quantity'])
+        self.data_grid['average_line']['sl_distance'] = (self.data_grid['stop_loss_amount']['value'] * 100) / (self.data_grid['average_line']['price'] *  self.data_grid['average_line']['quantity'])
         
-        if self.data_grid['side'] == 'LONG':
+        if self.data_grid['side']['value'] == 'LONG':
             self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] - (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
             self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['entry_line']['price'] - self.data_grid['stop_loss_line']['price']) / self.data_grid['entry_line']['price'],4)
             
-        if self.data_grid['side'] == 'SHORT':
+        if self.data_grid['side']['value'] == 'SHORT':
                 self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] + (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
                 self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['stop_loss_line']['price'] - self.data_grid['entry_line']['price']) / self.data_grid['entry_line']['price'],4)
 
         while True:
             
             # increment as grid distance the price and quantity
-            if self.data_grid['side'] == 'LONG':
-                new_price = current_price * (1 - self.data_grid['grid_distance'])
+            if self.data_grid['side']['value'] == 'LONG':
+                new_price = current_price * (1 - self.data_grid['grid_distance']['value'])
             
-            if self.data_grid['side'] == 'SHORT':
-                new_price = current_price * (1 + self.data_grid['grid_distance'])
+            if self.data_grid['side']['value'] == 'SHORT':
+                new_price = current_price * (1 + self.data_grid['grid_distance']['value'])
             
-            new_quantity = current_quantity * (1 + self.data_grid['quantity_increment'])
+            new_quantity = current_quantity * (1 + self.data_grid['quantity_increment']['value'])
             
             # control if the new price is greater or lower than stop loss price, in order to stop generation of posts
-            if self.data_grid['side'] == 'LONG':
+            if self.data_grid['side']['value'] == 'LONG':
                 if self.data_grid['stop_loss_line']['price'] > new_price:
                     break
                 
-            if self.data_grid['side'] == 'SHORT':
+            if self.data_grid['side']['value'] == 'SHORT':
                 if new_price > self.data_grid['stop_loss_line']['price']:
                     break
             
             self.data_grid['grid_body'].append({"entry" : len(self.data_grid['grid_body'])+1,
-                                   "side": 'BUY' if self.data_grid['side'].upper() == 'LONG' else 'SELL',
-                                   "position_side": self.data_grid['side'].upper(),
+                                   "side": 'BUY' if self.data_grid['side']['value'] == 'LONG' else 'SELL',
+                                   "position_side": self.data_grid['side']['value'],
                                    "price" : self.round_to_tick_size(new_price), 
                                    "quantity" : round(new_quantity, self.data_grid['quantity_precision']), 
                                    "cost" : round(new_price * new_quantity, 2),
@@ -287,13 +300,13 @@ class LUGrid:
             self.data_grid['average_line']['price'] = self.round_to_tick_size( ((self.data_grid['average_line']['price'] * self.data_grid['average_line']['quantity']) + (new_price * new_quantity)) / (self.data_grid['average_line']['quantity'] + new_quantity)) 
             self.data_grid['average_line']['quantity'] = round(self.data_grid['average_line']['quantity'] + new_quantity, self.data_grid['quantity_precision'])
             
-            self.data_grid['average_line']['sl_distance'] = (self.data_grid['stop_loss_amount'] * 100) / (self.data_grid['average_line']['price'] *  self.data_grid['average_line']['quantity'])
+            self.data_grid['average_line']['sl_distance'] = (self.data_grid['stop_loss_amount']['value'] * 100) / (self.data_grid['average_line']['price'] *  self.data_grid['average_line']['quantity'])
             
-            if self.data_grid['side'] == 'LONG':
+            if self.data_grid['side']['value'] == 'LONG':
                 self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] - (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
                 self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['entry_line']['price'] - self.data_grid['stop_loss_line']['price']) / self.data_grid['entry_line']['price'],4)
             
-            if self.data_grid['side'] == 'SHORT':
+            if self.data_grid['side']['value'] == 'SHORT':
                 self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] + (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
                 self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['stop_loss_line']['price'] - self.data_grid['entry_line']['price']) / self.data_grid['entry_line']['price'],4)
 
@@ -305,7 +318,7 @@ class LUGrid:
         logging.debug(f"data_grid[stop_loss_line]: {self.data_grid['stop_loss_line']}")
         
         # Calculate the take profit price based on the side
-        price_factor = 1 + self.data_grid['take_profit_line']['distance'] if self.data_grid['side'].upper() == 'LONG' else 1 - self.data_grid['take_profit_line']['distance']
+        price_factor = 1 + self.data_grid['take_profit_line']['distance'] if self.data_grid['side']['value'] == 'LONG' else 1 - self.data_grid['take_profit_line']['distance']
         self.data_grid['take_profit_line']['price'] = self.round_to_tick_size(self.data_grid['entry_line']['price'] * price_factor)
         logging.debug(f"data_grid[take_profit_line]: {self.data_grid['take_profit_line']}")
         
@@ -340,7 +353,7 @@ class LUGrid:
         try:
             # Create the entry order
             response = self.client.futures_create_order(
-                symbol = self.data_grid['symbol'].upper(),
+                symbol = self.data_grid['symbol']['value'],
                 side = entry_line['side'],
                 type = 'LIMIT',
                 timeInForce = 'GTC',
@@ -398,7 +411,7 @@ class LUGrid:
         try:
             for i in range(len(self.data_grid['grid_body'])):
                 response = self.client.futures_create_order(
-                    symbol = self.data_grid['symbol'].upper(),
+                    symbol = self.data_grid['symbol']['value'],
                     side = self.data_grid['grid_body'][i]['side'],
                     type = 'LIMIT',
                     timeInForce = 'GTC',
@@ -448,7 +461,7 @@ class LUGrid:
         try:
             # Post the stop loss order
             response = self.client.futures_create_order(
-                symbol=self.data_grid['symbol'].upper(),
+                symbol=self.data_grid['symbol']['value'],
                 side=self.data_grid['stop_loss_line']['side'],  # SL for LONG is SELL and vice versa
                 positionSide=self.data_grid['stop_loss_line']['position_side'],
                 type='STOP_MARKET',
@@ -505,7 +518,7 @@ class LUGrid:
         try:
             # Post the take profit order
             response = self.client.futures_create_order(
-                symbol=self.data_grid['symbol'].upper(),
+                symbol=self.data_grid['symbol']['value'],
                 side=self.data_grid['take_profit_line']['side'],  # TP for LONG is SELL and vice versa
                 positionSide=self.data_grid['take_profit_line']['position_side'],
                 type='TAKE_PROFIT_MARKET',
@@ -561,7 +574,7 @@ class LUGrid:
         logging.info("POSTING UNLOAD ORDER...")
         try:
             # Calculate the unload price based on the side (LONG or SHORT)
-            price_factor = 1 + self.data_grid['unload_line']['distance'] if self.data_grid['side'].upper() == 'LONG' else 1 - self.data_grid['unload_line']['distance']
+            price_factor = 1 + self.data_grid['unload_line']['distance'] if self.data_grid['side']['value'] == 'LONG' else 1 - self.data_grid['unload_line']['distance']
             self.data_grid['unload_line']['price'] = self.round_to_tick_size(self.data_grid['current_line']['price'] * price_factor)
 
             # Calculate unload quantity
@@ -574,7 +587,7 @@ class LUGrid:
 
             # Post the limit order
             response = self.client.futures_create_order(
-                symbol=self.data_grid['symbol'].upper(),
+                symbol=self.data_grid['symbol']['value'],
                 side=self.data_grid['unload_line']['side'],
                 type='LIMIT',
                 timeInForce='GTC',
@@ -607,7 +620,7 @@ class LUGrid:
     def clean_open_orders(self):
         
         logging.info("CLEAN ALL OPEN ORDERS...")
-        op_symbol = self.data_grid['symbol']
+        op_symbol = self.data_grid['symbol']['value']
         
         # getting all open orders
         try:
@@ -638,8 +651,7 @@ class LUGrid:
         
         try:
             # Fetch futures position information
-            response = self.client.futures_position_information(symbol=self.data_grid['symbol'])
-            
+            response = self.client.futures_position_information(symbol=self.data_grid['symbol']['value'])
 
             # Loop through the list to find the relevant position based on 'positionSide'
             for position_info in response:
