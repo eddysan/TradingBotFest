@@ -426,7 +426,7 @@ class LUGrid:
                 
                 logging.debug(f"Posting grid line to binance: {self.data_grid['grid_body'][i]}")
                 logging.debug(f"Binance response: {response}")
-                print(f"{self.data_grid['symbol']} - {self.data_grid['grid_body'][i]['entry']} | {self.data_grid['grid_body'][i]['price']} | {self.data_grid['grid_body'][i]['quantity']} | {self.data_grid['grid_body'][i]['cost']}  ✔️")
+                print(f"{self.data_grid['symbol']['value']} - {self.data_grid['grid_body'][i]['entry']} | {self.data_grid['grid_body'][i]['price']} | {self.data_grid['grid_body'][i]['quantity']} | {self.data_grid['grid_body'][i]['cost']}  ✔️")
                 
         except KeyError as e:
             logging.exception(f"Posting grid orders: Missing key in order data: {e}")
@@ -480,7 +480,7 @@ class LUGrid:
             logging.debug(f"stop_loss_line binance response: {response}")
             
             # Log successful stop loss order
-            print(f"{self.data_grid['symbol']} - {self.data_grid['stop_loss_line']['entry']} ({round(self.data_grid['stop_loss_line']['distance']*100, 2)}%) | "
+            print(f"{self.data_grid['symbol']['value']} - {self.data_grid['stop_loss_line']['entry']} ({round(self.data_grid['stop_loss_line']['distance']*100, 2)}%) | "
                   f"{self.data_grid['stop_loss_line']['price']} | {self.data_grid['stop_loss_line']['quantity']} | "
                   f"{self.data_grid['stop_loss_line']['cost']} ✔️")
 
@@ -537,7 +537,7 @@ class LUGrid:
             logging.debug(f"take_profit_line binance response: {response}")
             
             # Log the successful order
-            print(f"{self.data_grid['symbol']} - {self.data_grid['take_profit_line']['entry']} ({round(self.data_grid['take_profit_line']['distance']*100,2)}%) | "
+            print(f"{self.data_grid['symbol']['value']} - {self.data_grid['take_profit_line']['entry']} ({round(self.data_grid['take_profit_line']['distance']*100,2)}%) | "
                   f"{self.data_grid['take_profit_line']['price']} | {self.data_grid['take_profit_line']['quantity']} | "
                   f"{self.data_grid['take_profit_line']['cost']} ✔️")
             
@@ -579,7 +579,7 @@ class LUGrid:
 
             # Calculate unload quantity
             self.data_grid['unload_line']['quantity'] = round(
-                self.data_grid['current_line']['quantity'] - self.data_grid['entry_line']['quantity'],
+                self.data_grid['current_line']['quantity'] - self.data_grid['entry_line']['quantity'], # always take the original quantity inserted
                 self.data_grid['quantity_precision']
             )
             
@@ -598,14 +598,14 @@ class LUGrid:
             )
 
             # Update unload line with the response data
-            self.data_grid['unload_line']['order_id'] = response.get('orderId', 0)
-            self.data_grid['unload_line']['status'] = response.get('status', 'UNKNOWN')
-            self.data_grid['unload_line']['client_order_id'] = response.get('clientOrderId', 'UNKNOWN')
+            self.data_grid['unload_line']['order_id'] = response['orderId']
+            self.data_grid['unload_line']['status'] = response['status']
+            self.data_grid['unload_line']['client_order_id'] = response['clientOrderId']
 
             logging.debug(f"unload_line response from binance: {response}")
             
             # Log the success message
-            print(f"UL: {self.data_grid['symbol']} - {self.data_grid['unload_line']['entry']} | "
+            print(f"UL: {self.data_grid['symbol']['value']} - {self.data_grid['unload_line']['entry']} | "
                   f"{self.data_grid['unload_line']['price']} | {self.data_grid['unload_line']['quantity']} ✔️")
         
         except KeyError as e:
@@ -656,9 +656,9 @@ class LUGrid:
             # Loop through the list to find the relevant position based on 'positionSide'
             for position_info in response:
                 if float(position_info['positionAmt']) != 0:  # Skip empty positions if the exchange is in hedge mode the response 2 current position, one is 0
-                    self.data_grid['current_line']['price'] = float(position_info.get('entryPrice', 0))
-                    self.data_grid['current_line']['quantity'] = float(position_info.get('positionAmt', 0))
-                    self.data_grid['current_line']['position_side'] = position_info.get('positionSide', 'UNKNOWN')
+                    self.data_grid['current_line']['price'] = self.round_to_tick_size(float(position_info['entryPrice']))
+                    self.data_grid['current_line']['quantity'] = round(abs(float(position_info['positionAmt'])), self.data_grid['quantity_precision'])
+                    self.data_grid['current_line']['position_side'] = position_info['positionSide']
                     
                     logging.debug(f"Current position from Binance: {position_info}")
                     logging.debug(f"Current position on current_line: {self.data_grid['current_line']}")
