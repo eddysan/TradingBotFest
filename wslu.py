@@ -11,7 +11,8 @@ logging.basicConfig(
     level=logging.DEBUG,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     format='%(asctime)s - %(levelname)s - %(message)s',  # Define log format
     handlers=[logging.FileHandler("logs/websocket.log"),  # Save logs to a file
-              #logging.StreamHandler()]  # Also print logs to the console
+              #logging.StreamHandler() # Also print logs to the console
+              ]  
 )
 
 ws = None  # Global variable for WebSocket connection
