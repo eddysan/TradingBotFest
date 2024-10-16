@@ -32,6 +32,7 @@ def write_data_grid(directory, file_name, data_grid):
 
 # input data from console
 def input_data(config_file):
+    logging.debug(f"INPUT DATA...")
     # Helper to safely get user input with default fallback
     def get_input(prompt, default_value=None, cast_func=str):
         user_input = input(prompt).strip()
@@ -146,11 +147,14 @@ def get_connection():
         return client
     
     except FileNotFoundError:
-        print("Error: credentials.json file not found. Please check the file path.")
+        logging.FileNotFoundError("Error: credentials.json file not found. Please check the file path.")
+        logging.info("Error: credentials.json file not found. Please check the file path.")
     except KeyError:
-        print("Error: Invalid format in credentials.json. Missing 'api_key' or 'api_secret'.")
+        logging.KeyError("Error: Invalid format in credentials.json. Missing 'api_key' or 'api_secret'.")
+        logging.info("Error: Invalid format in credentials.json. Missing 'api_key' or 'api_secret'.")
     except Exception as e:
-        print(f"Binance connection error, check credentials or internet: {e}")
+        logging.exception(f"Binance connection error, check credentials or internet: {e}")
+        logging.info(f"Binance connection error, check credentials or internet: {e}")
     
     return None  # Return None explicitly if the connection fails
 
@@ -171,15 +175,13 @@ class LUGrid:
         self.client = get_connection()
         
         
-
-        
     @property
     def symbol(self):
         return self.data_grid['symbol']['value']
     
     # read data grid in order to upload config
     def read_data_grid(self):
-        logging.info("READING DATA_GRID FILE...")
+        logging.debug(f"{self.operation_code} READING DATA_GRID FILE...")
         operation_file = f"ops/{self.operation_code}.json"
         fallback_file = "config.json"  # The fallback file
 
@@ -188,24 +190,23 @@ class LUGrid:
             if os.path.isfile(operation_file):
                 with open(operation_file, 'r') as file:
                     config_file = json.load(file)
-                    logging.info(f"Successfully loaded data_grid file: {operation_file}")
+                    logging.debug(f"{self.operation_code} Successfully loaded: {operation_file}")
                     return config_file
             else:
-                logging.warning(f"data_grid file '{operation_file}' not found. Attempting to load fallback config.json file.")
+                logging.warning(f"{self.operation_code} data_grid file '{operation_file}' not found. Attempting to load fallback config.json file.")
 
             # Attempt to load the fallback file if primary doesn't exist
             if os.path.isfile(fallback_file):
                 with open(fallback_file, 'r') as file:
                     config_file = json.load(file)
-                    logging.info(f"Successfully loaded fallback file: {fallback_file}")
+                    logging.debug(f"{self.operation_code} Successfully loaded fallback file: {fallback_file}")
                     return config_file
             else:
-                logging.error(f"Fallback config.json file '{fallback_file}' not found.")
+                logging.error(f"{self.operation_code} Fallback config.json file '{fallback_file}' not found.")
                 return None
 
         except json.JSONDecodeError as e:
-            logging.error(f"JSONDecodeError in file: {operation_file if os.path.isfile(operation_file) else fallback_file} - {str(e)}")
-            print(f"JSONDecodeError in file: {operation_file if os.path.isfile(operation_file) else fallback_file} - {str(e)}")
+            logging.error(f"{self.operation_code} JSONDecodeError in file: {operation_file if os.path.isfile(operation_file) else fallback_file} - {str(e)}")
             return None
 
         except Exception as e:
@@ -215,21 +216,21 @@ class LUGrid:
         
     # Write data grid to operations folder
     def write_data_grid(self):
-        logging.info("WRITTING DATA_GRID FILE...")
+        logging.debug(f"{self.operation_code} WRITTING DATA_GRID FILE...")
         cfile = f"ops/{self.operation_code}.json"
 
         try:
             # Writing the JSON data to the file
             with open(cfile, 'w') as file:
                 json.dump(self.data_grid, file, indent=4)
-                logging.info(f"Successfully saved data_grid to {cfile}.")
+                logging.debug(f"{self.operation_code} Successfully saved data_grid to {cfile}.")
 
         except IOError as e:
             # Log the error with exception traceback
-            logging.exception(f"Error writing file {self.operation_code}: {e}")
+            logging.exception(f"{self.operation_code} Error writing file {self.operation_code}: {e}")
         except Exception as e:
             # Catch any other unexpected exceptions
-            logging.exception(f"Unexpected error occurred while writing to {cfile}: {str(e)}")
+            logging.exception(f"{self.operation_code} Unexpected error occurred while writing to {cfile}: {str(e)}")
 
     
     
@@ -242,7 +243,7 @@ class LUGrid:
     # generate the entire grid points, stop loss and take profit
     def generate_grid(self):
         
-        logging.info("GENERATING DATA_GRID...")
+        logging.debug(f"{self.operation_code} GENERATING DATA_GRID LINES...")
         
         # filling initial data to entry_line
         
@@ -317,30 +318,30 @@ class LUGrid:
             current_price = new_price
             current_quantity = new_quantity
             
-        logging.debug(f"data_grid[grid_body]: {self.data_grid['grid_body']}")
-        logging.debug(f"data_grid[stop_loss_line]: {self.data_grid['stop_loss_line']}")
+        logging.debug(f"{self.operation_code} grid_body generated: {self.data_grid['grid_body']}")
+        logging.debug(f"{self.operation_code} stop_loss_line generated: {self.data_grid['stop_loss_line']}")
         
         # Calculate the take profit price based on the side
         price_factor = 1 + self.data_grid['take_profit_line']['distance'] if self.data_grid['side']['value'] == 'LONG' else 1 - self.data_grid['take_profit_line']['distance']
         self.data_grid['take_profit_line']['price'] = self.round_to_tick_size(self.data_grid['entry_line']['price'] * price_factor)
-        logging.debug(f"data_grid[take_profit_line]: {self.data_grid['take_profit_line']}")
+        logging.debug(f"{self.operation_code} take_profit_line generated: {self.data_grid['take_profit_line']}")
         
-        logging.info(f"Grid generation completed. Stop loss at {self.data_grid['stop_loss_line']['price']}, take profit at {self.data_grid['take_profit_line']['price']}")
+        logging.debug(f"{self.operation_code} Grid generation completed")
         
         return None
     
             
     # update entry line data taking current line as data, and the current position will be the new entry
     def update_entry_line(self):
-        logging.info("UPDATING ENTRY LINE FROM CURRENT LINE...")
+        logging.debug(f"{self.operation_code} UPDATING ENTRY_LINE FROM CURRENT_LINE...")
     
         # Update entry line with current line values
         self.data_grid['entry_line']['price'] = self.data_grid['current_line']['price']
         self.data_grid['entry_line']['quantity'] = self.data_grid['current_line']['quantity']
         self.data_grid['entry_line']['cost'] = round(self.data_grid['entry_line']['price'] * self.data_grid['entry_line']['quantity'], 2)
         
-        logging.debug(f"current_line: {self.data_grid['current_line']}")
-        logging.debug(f"entry_line updated: {self.data_grid['entry_line']}")
+        logging.debug(f"{self.operation_code} current_line: {self.data_grid['current_line']}")
+        logging.debug(f"{self.operation_code} entry_line updated: {self.data_grid['entry_line']}")
         
         return None
     
@@ -348,7 +349,7 @@ class LUGrid:
     # post entry order
     def post_entry_order(self):
 
-        logging.info("POSTING ENTRY ORDER TO BINANCE...")
+        logging.debug(f"{self.operation_code} POSTING ENTRY ORDER TO BINANCE...")
         entry_line = self.data_grid.get('entry_line', {})
     
         try:
@@ -370,13 +371,13 @@ class LUGrid:
             entry_line['client_order_id'] = response.get('clientOrderId', 'UNKNOWN')
             
             # Log the placed order details
-            logging.debug(f"entry_line posted to binance: {entry_line}")
-            logging.debug(f"Binance response: {response}")
-            print(f"{self.data_grid['symbol']['value']} - {entry_line.get('entry', 'N/A')} | {entry_line['price']} | {entry_line['quantity']} | {entry_line.get('cost', 'N/A')} ✔️")
+            logging.debug(f"{self.operation_code} entry_line posted to binance: {entry_line}")
+            logging.debug(f"{self.operation_code} Binance response: {response}")
+            logging.info(f"{self.operation_code} ✅ {entry_line['entry']} | {entry_line['price']} | {entry_line['quantity']} | {entry_line['cost']} ")
 
         except Exception as e:
-            logging.exception(f"Error placing entry_line order: {entry_line} \n {e}")
-            print(f"Error placing entry_line order: {e}")
+            logging.exception(f"{self.operation_code} Error placing entry_line order: {entry_line} \n {e}")
+            logging.info(f"{self.data_grid['symbol']['value']} Error placing entry_line order: {e}")
 
         return None
 
@@ -384,12 +385,12 @@ class LUGrid:
     # clean entire grid
     def clean_grid_order(self):
         
-        logging.info("CLEANING ACTIVE GRID ORDERS...")
+        logging.debug(f"{self.operation_code} CLEANING ACTIVE GRID ORDERS...")
         dg_symbol = self.data_grid['symbol']['value']
         order_list = self.data_grid.get('grid_body', [])
 
         if not order_list:
-            print("No grid orders to cancel.")
+            logging.info(f"{self.operation_code} No grid orders to cancel.")
             return
 
         for order in order_list:
@@ -399,16 +400,15 @@ class LUGrid:
                 
             except Exception as e:
                 logging.exception(f"Error cancelling orders: {e} ")
-                print(f"Error cancelling orders: {e} ")
 
         # Clear grid_body after all cancellations
         self.data_grid['grid_body'] = []
-        print("All grid orders cancelled and cleared.")
+        logging.info(f"All grid orders cancelled and cleared.")
 
             
     # post a limit order for grid body
     def post_grid_order(self):
-        logging.info("POSTING GRID_BODY TO BINANCE...")
+        logging.debug(f"{self.operation_code} POSTING GRID_BODY TO BINANCE...")
         try:
             for i in range(len(self.data_grid['grid_body'])):
                 response = self.client.futures_create_order(
@@ -425,21 +425,19 @@ class LUGrid:
                 self.data_grid['grid_body'][i]['status'] = response['status']
                 self.data_grid['grid_body'][i]['client_order_id'] = response['clientOrderId']
                 
-                logging.debug(f"Posting grid line to binance: {self.data_grid['grid_body'][i]}")
-                logging.debug(f"Binance response: {response}")
-                print(f"{self.data_grid['symbol']['value']} - {self.data_grid['grid_body'][i]['entry']} | {self.data_grid['grid_body'][i]['price']} | {self.data_grid['grid_body'][i]['quantity']} | {self.data_grid['grid_body'][i]['cost']}  ✔️")
+                logging.debug(f"{self.operation_code} Posting grid line to binance: {self.data_grid['grid_body'][i]}")
+                logging.debug(f"{self.operation_code} Binance response: {response}")
+                logging.info(f"{self.operation_code} ✅ {self.data_grid['grid_body'][i]['entry']} | {self.data_grid['grid_body'][i]['price']} | {self.data_grid['grid_body'][i]['quantity']} | {self.data_grid['grid_body'][i]['cost']}")
                 
         except KeyError as e:
-            logging.exception(f"Posting grid orders: Missing key in order data: {e}")
-            print(f"Missing key in order data: {e}")
+            logging.exception(f"{self.operation_code} Posting grid orders: Missing key in order data: {e}")
         except Exception as e:
             logging.exception(f"Error posting grid data: {e}")
-            print(f"Error posting order: {e}")
     
        
     # clean stop loss order
     def clean_sl_order(self):
-        logging.info("CLEANING STOP LOSS ORDER FROM BINANCE...")
+        logging.debug(f"{self.operation_code} CLEANING STOP LOSS ORDER FROM BINANCE...")
         
         order_id = self.data_grid['stop_loss_line'].get('order_id', 0)
      
@@ -452,13 +450,13 @@ class LUGrid:
                 self.data_grid['stop_loss_line']['order_id'] = 0
                 self.data_grid['stop_loss_line']['client_order_id'] = "SL_"
             except Exception as e:
-                logging.exception(f"Error cancelling stop loss order {order_id} for {self.data_grid['symbol']}: {e}")
-                print(f"Error cancelling stop loss order {order_id} for {self.data_grid['symbol']}: {e}")
+                logging.exception(f"{self.operation_code} Error cancelling stop loss order {order_id} for {self.data_grid['symbol']}: {e}")
+                logging.info(f"{self.operation_code} ⛔️ Error cancelling stop loss order {order_id} for {self.data_grid['symbol']}: {e}")
             
     
     # post entry order
     def post_sl_order(self):
-        logging.info("POSTING STOP LOSS ORDER TO BINANCE...")
+        logging.debug(f"{self.operation_code} POSTING STOP_LOSS ORDER TO BINANCE...")
         try:
             # Post the stop loss order
             response = self.client.futures_create_order(
@@ -477,17 +475,16 @@ class LUGrid:
             self.data_grid['stop_loss_line']['client_order_id'] = response.get('clientOrderId', 'UNKNOWN')
             
             # Log the placed order details
-            logging.debug(f"stop_loss_line posted to binance: {self.data_grid['stop_loss_line']}")
-            logging.debug(f"stop_loss_line binance response: {response}")
+            logging.debug(f"{self.operation_code} stop_loss_line posted to binance: {self.data_grid['stop_loss_line']}")
+            logging.debug(f"{self.operation_code} stop_loss_line binance response: {response}")
             
             # Log successful stop loss order
-            print(f"{self.data_grid['symbol']['value']} - {self.data_grid['stop_loss_line']['entry']} ({round(self.data_grid['stop_loss_line']['distance']*100, 2)}%) | "
+            logging.info(f"{self.operation_code} ✅ {self.data_grid['stop_loss_line']['entry']} ({round(self.data_grid['stop_loss_line']['distance']*100, 2)}%) | "
                   f"{self.data_grid['stop_loss_line']['price']} | {self.data_grid['stop_loss_line']['quantity']} | "
-                  f"{self.data_grid['stop_loss_line']['cost']} ✔️")
+                  f"{self.data_grid['stop_loss_line']['cost']}")
 
         except Exception as e:
-            logging.exception(f"Error placing stop loss order: {e}")
-            print(f"Error placing stop loss order: {e}")
+            logging.exception(f"{self.operation_code} Error placing stop loss order: {e}")
 
         return None
 
@@ -496,7 +493,7 @@ class LUGrid:
 
     # clean take profit order
     def clean_tp_order(self):
-        logging.info("CLEANING TAKE PROFIT ORDERS FROM BINANCE...")
+        logging.debug(f"{self.operation_code} CLEANING TAKE PROFIT ORDERS FROM BINANCE...")
         
         order_id = self.data_grid['take_profit_line'].get('order_id', 0)
      
@@ -509,13 +506,13 @@ class LUGrid:
                 self.data_grid['take_profit_line']['order_id'] = 0
                 self.data_grid['take_profit_line']['client_order_id'] = "TP_"
             except Exception as e:
-                logging.exception(f"Error cancelling take profit order {order_id} for {self.data_grid['symbol']}: {e}")
-                print(f"Error cancelling take profit order {order_id} for {self.data_grid['symbol']}: {e}")
+                logging.exception(f"{self.operation_code} Error cancelling take profit order {order_id} for {self.data_grid['symbol']}: {e}")
+                logging.info(f"{self.operation_code} ⛔️ Error cancelling take profit order {order_id} for {self.data_grid['symbol']}: {e}")
             
 
     # post take profit order
     def post_tp_order(self):
-        logging.info("POSTING TAKE PROFIT ORDER TO BINANCE...")
+        logging.debug(f"{self.operation_code} POSTING TAKE PROFIT ORDER TO BINANCE...")
         try:
             # Post the take profit order
             response = self.client.futures_create_order(
@@ -534,24 +531,23 @@ class LUGrid:
             self.data_grid['take_profit_line']['client_order_id'] = response.get('clientOrderId', 'UNKNOWN')
             
             # Log the placed order details
-            logging.debug(f"take_profit_line posted to binance: {self.data_grid['take_profit_line']}")
-            logging.debug(f"take_profit_line binance response: {response}")
+            logging.debug(f"{self.operation_code} take_profit_line posted to binance: {self.data_grid['take_profit_line']}")
+            logging.debug(f"{self.operation_code} take_profit_line binance response: {response}")
             
             # Log the successful order
-            print(f"{self.data_grid['symbol']['value']} - {self.data_grid['take_profit_line']['entry']} ({round(self.data_grid['take_profit_line']['distance']*100,2)}%) | "
+            logging.info(f"{self.operation_code} ✅ {self.data_grid['take_profit_line']['entry']} ({round(self.data_grid['take_profit_line']['distance']*100,2)}%) | "
                   f"{self.data_grid['take_profit_line']['price']} | {self.data_grid['take_profit_line']['quantity']} | "
-                  f"{self.data_grid['take_profit_line']['cost']} ✔️")
+                  f"{self.data_grid['take_profit_line']['cost']}")
             
         except Exception as e:
-            logging.exception(f"Error placing take profit order: {e}")
-            print(f"Error placing take profit order: {e}")
+            logging.exception(f"{self.operation_code} Error placing take profit order: {e}")
 
         return None
     
     
     # clean unload order
     def clean_ul_order(self):
-        logging.info("CLEANING UNLOAD LINE...")
+        logging.debug(f"{self.operation_code} CLEANING UNLOAD_LINE...")
         order_id = self.data_grid['unload_line']['order_id']
     
         # Check if there is an existing unload order to cancel
@@ -562,17 +558,16 @@ class LUGrid:
                 #self.data_grid['unload_line']['quantity'] = 0
                 #self.data_grid['unload_line']['order_id'] = 0
                 #self.data_grid['unload_line']['client_order_id'] = "UL_"
-                logging.debug(f"unload_line to cancel: {self.data_grid['unload_line']}")
-                logging.debug(f"canceling unload_line, binance response: {response}")
+                logging.debug(f"{self.operation_code} unload_line to cancel: {self.data_grid['unload_line']}")
+                logging.debug(f"{self.operation_code} canceling unload_line, binance response: {response}")
             
             except Exception as e:
-                logging.exception(f"Error cancelling unload_line {order_id} for {self.data_grid['symbol']}: {e}")
-                print(f"Error cancelling unload_line {order_id} for {self.data_grid['symbol']}: {e}")
+                logging.exception(f"{self.operation_code} Error cancelling unload_line {order_id} for {self.data_grid['symbol']}: {e}")
         
     
     # post unload order
     def post_ul_order(self):
-        logging.info("POSTING UNLOAD ORDER...")
+        logging.debug(f"{self.operation_code} POSTING UNLOAD ORDER...")
         try:
             # Calculate the unload price based on the side (LONG or SHORT)
             price_factor = 1 + self.data_grid['unload_line']['distance'] if self.data_grid['side']['value'] == 'LONG' else 1 - self.data_grid['unload_line']['distance']
@@ -584,7 +579,7 @@ class LUGrid:
                 self.data_grid['quantity_precision']
             )
             
-            logging.debug(f"unload_line to post: {self.data_grid['unload_line']}")
+            logging.debug(f"{self.operation_code} unload_line to post: {self.data_grid['unload_line']}")
 
             # Post the limit order
             response = self.client.futures_create_order(
@@ -603,24 +598,21 @@ class LUGrid:
             self.data_grid['unload_line']['status'] = response['status']
             self.data_grid['unload_line']['client_order_id'] = response['clientOrderId']
 
-            logging.debug(f"unload_line response from binance: {response}")
+            logging.debug(f"{self.operation_code} unload_line response from binance: {response}")
             
             # Log the success message
-            print(f"UL: {self.data_grid['symbol']['value']} - {self.data_grid['unload_line']['entry']} | "
-                  f"{self.data_grid['unload_line']['price']} | {self.data_grid['unload_line']['quantity']} ✔️")
+            logging.info(f"{self.operation_code} ✅ {self.data_grid['unload_line']['entry']} | "
+                  f"{self.data_grid['unload_line']['price']} | {self.data_grid['unload_line']['quantity']}")
         
         except KeyError as e:
-            logging.exception(f"Missing key in order data: {e}")
-            print(f"Missing key in order data: {e}")
+            logging.exception(f"{self.operation_code} Missing key in order data: {e}")
         except Exception as e:
-            logging.exception(f"Error posting order: {e}")
-            print(f"Error posting order: {e}")
-
+            logging.exception(f"{self.operation_code} Error posting order: {e}")
 
 
     def clean_open_orders(self):
         
-        logging.info("CLEAN ALL OPEN ORDERS...")
+        logging.debug(f"{self.operation_code} CLEAN ALL OPEN ORDERS...")
         op_symbol = self.data_grid['symbol']['value']
         
         # getting all open orders
@@ -628,27 +620,25 @@ class LUGrid:
             open_orders = self.client.futures_get_open_orders(symbol=op_symbol)
         
         except Exception:
-            logging.exception("There is no open orders")
-            print("There is no open orders")
+            logging.exception("{self.operation_code} There is no open orders")
             
         for order in open_orders:
             try:
                 # Cancel multiple orders at once
                 response = self.client.futures_cancel_order(symbol=op_symbol, orderId=order['orderId'])
-                logging.debug(f"Order to cancel: {order}")
-                logging.debug(f"Binance response to cancel: {response}")
-                print(str(response['type']) + " Price: " + str(response['price']) + " Quantity: " + str(response['origQty']) + " ❌")
+                logging.debug(f"{self.operation_code} Order to cancel: {order}")
+                logging.debug(f"{self.operation_code} Binance response to cancel: {response}")
+                logging.info(f"{self.operation_code} ⛔️ {response['type']} | Price: {response['price']} | Quantity: {response['origQty']}")
             except Exception as e:
-                logging.exception(f"Error cancelling orders: {e} ")
-                print(f"Error cancelling orders: {e} ")
+                logging.exception(f"{self.operation_code} Error cancelling orders: {e} ")
 
         # Clear grid_body after all cancellations
-        print("All grid orders cancelled and cleared.")
+        logging.info(f"{self.operation_code} All grid orders cancelled and cleared.")
     
 
     def update_current_position(self):
         
-        logging.info("UPDATING CURRENT POSITION FROM BINANCE...")
+        logging.debug(f"{self.operation_code} UPDATING CURRENT POSITION FROM BINANCE...")
         
         try:
             # Fetch futures position information
@@ -661,15 +651,13 @@ class LUGrid:
                     self.data_grid['current_line']['quantity'] = round(abs(float(position_info['positionAmt'])), self.data_grid['quantity_precision'])
                     self.data_grid['current_line']['position_side'] = position_info['positionSide']
                     
-                    logging.debug(f"Current position from Binance: {position_info}")
-                    logging.debug(f"Current position on current_line: {self.data_grid['current_line']}")
+                    logging.debug(f"{self.operation_code} Current position from Binance: {position_info}")
+                    logging.debug(f"{self.operation_code} Current position on current_line: {self.data_grid['current_line']}")
                     
                     break  # Exit after finding the first non-empty position
 
         except Exception as e:
-            logging.exception(f"update_current_position | Error fetching position information for {self.data_grid['symbol']}: {e}")
-            # Log or handle the error in case the API call fails
-            print(f"update_current_position | Error fetching position information for {self.data_grid['symbol']}: {e}")
+            logging.exception(f"{self.operation_code} update_current_position | Error fetching position information for {self.data_grid['symbol']}: {e}")
 
             
     def print_grid(self):

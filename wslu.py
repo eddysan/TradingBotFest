@@ -6,14 +6,29 @@ import time
 import logging
 from packages import *
 
-# Set up basic logging configuration
-logging.basicConfig(
-    level=logging.DEBUG,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    format='%(asctime)s - %(levelname)s - %(message)s',  # Define log format
-    handlers=[logging.FileHandler("logs/websocket.log"),  # Save logs to a file
-              logging.StreamHandler() # Also print logs to the console
-              ]  
-)
+# logging config
+os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
+
+# Create a logger object
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)  # Overall logger level
+
+console_handler = logging.StreamHandler()  # Logs to console
+console_handler.setLevel(logging.INFO)  # Only log INFO and above to console
+
+file_handler = logging.FileHandler(f"logs/positions.log")  # Logs to file
+file_handler.setLevel(logging.DEBUG)  # Log DEBUG and above to file
+
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s') # formatter
+console_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
+
+if logger.hasHandlers(): # Clear any previously added handlers (if needed)
+    logger.handlers.clear()
+
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+
 
 ws = None  # Global variable for WebSocket connection
 client = get_connection()
@@ -28,7 +43,7 @@ def on_message(ws, message):
         order_id = message['o']['i']  # Order ID
         kind_order = str(message['o']['c'])[:2] #getting kind of operation on grid (GD, TP, SL, IN, UL etc)
         operation_code = str(message['o']['c']).split('_')[1] # getting operation code
-        logging.info(f"Processing message for: {symbol} with operation: {operation_code} and order: {kind_order}")
+        logging.debug(f"Processing message for: {symbol} with operation: {operation_code} and order: {kind_order}")
         
         grid = LUGrid(operation_code)
         logging.debug(f"data_grid[symbol]: {grid.symbol}")
@@ -38,22 +53,20 @@ def on_message(ws, message):
                 
             match kind_order:
                 case "IN": #the event is entry
-                    logging.info(f"IN order for {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
-                    print(f"IN taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                    logging.info(f"{operation_code} IN order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() # read position information at first the position will be same as entry_line
+                    grid.post_tp_order() # when an entry line is taken, then take profit will be posted
                     grid.write_data_grid()
                     
                 case "GD": #the event taken is in grid
-                    logging.info(f"GD order for {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
-                    print(f"GD taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                    logging.info(f"{operation_code} GD order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() #read current position
                     grid.clean_ul_order()
                     grid.post_ul_order()
                     grid.write_data_grid() # saving all configuration to json
 
                 case "UL": #the event is unload
-                    logging.info(f"UL order for {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
-                    print(f"UL taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                    logging.info(f"{operation_code} UL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() #read current position
                     grid.update_entry_line() # updating entry line from current_line values
                     grid.clean_open_orders() # clean all open orders
@@ -64,18 +77,15 @@ def on_message(ws, message):
                     grid.write_data_grid() # saving all configuration to json
                     
                 case "SL": #the event is stop loss
-                    logging.info(f"SL order for {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
-                    print(f"SL taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                    logging.info(f"{operation_code} SL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                     # close all open orders from list grid
                     
                 case "TP": #the event is take profit
-                    logging.info(f"TP order for {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
-
-                    print(f"TP taked: {grid.symbol}, price: {message['o']['p']}, quantity: {message['o']['q']}")
+                    logging.info(f"{operation_code} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                     # close all open orders from grid list
                         
                 case _:
-                    logging.warning(f"No matching operation for {symbol}")
+                    logging.warning(f"{operation_code} No matching operation for {symbol}")
                     print(f"No kind operation")
             
 
