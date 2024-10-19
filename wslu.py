@@ -118,7 +118,7 @@ def start_futures_stream():
 
         # Run the WebSocket connection
         ws.on_open = on_open
-        ws.run_forever(ping_interval=60, ping_timeout=10)
+        ws.run_forever(ping_interval=120, ping_timeout=20) # Ping every 120 seconds, wait up to 20 seconds for Pong
 
         # Keep the stream alive by renewing the listen key every 30 minutes
         while True:
