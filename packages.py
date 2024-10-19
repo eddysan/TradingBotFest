@@ -276,6 +276,9 @@ class LUGrid:
                 self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] + (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
                 self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['stop_loss_line']['price'] - self.data_grid['entry_line']['price']) / self.data_grid['entry_line']['price'],4)
 
+        self.data_grid['stop_loss_line']['quantity'] = self.data_grid['entry_line']['quantity']
+        self.data_grid['stop_loss_line']['cost'] = self.data_grid['entry_line']['cost']
+
         while True:
             
             # increment as grid distance the price and quantity
@@ -319,6 +322,8 @@ class LUGrid:
                 self.data_grid['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid['average_line']['price'] + (self.data_grid['average_line']['price'] * self.data_grid['average_line']['sl_distance'] / 100) )
                 self.data_grid['stop_loss_line']['distance'] = round((self.data_grid['stop_loss_line']['price'] - self.data_grid['entry_line']['price']) / self.data_grid['entry_line']['price'],4)
 
+            self.data_grid['stop_loss_line']['quantity'] = round(self.data_grid['stop_loss_line']['quantity'] + new_quantity, self.data_grid['quantity_precision']) 
+            self.data_grid['stop_loss_line']['cost'] = round(self.data_grid['stop_loss_line']['cost'] + (new_price * new_quantity), 2)
             
             current_price = new_price
             current_quantity = new_quantity
