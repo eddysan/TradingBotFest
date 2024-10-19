@@ -388,27 +388,28 @@ class LUGrid:
 
     
     # clean entire grid
-    def clean_grid_order(self):
+    def clean_order(self, code):
         
-        logging.debug(f"{self.operation_code} CLEANING ACTIVE GRID ORDERS...")
-        dg_symbol = self.data_grid['symbol']['value']
-        order_list = self.data_grid.get('grid_body', [])
+        logging.debug(f"{self.operation_code} CLEANING {code.upper()} ORDERS...")
+        symbol = self.data_grid['symbol']['value']
+        order_code = f"{code.upper()}_{self.operation_code}" #code to lookfor on orders
+        open_orders = self.client.futures_get_open_orders(symbol=symbol) # getting all open orders
 
-        if not order_list:
-            logging.info(f"{self.operation_code} No grid orders to cancel.")
+        if not open_orders:
+            logging.info(f"{self.operation_code} No {code.upper()} orders to cancel.")
             return
-
-        for order in order_list:
-            try:
-                # Cancel multiple orders at once
-                response = self.client.futures_cancel_order(symbol=dg_symbol, orderId=order['order_id'])
+        
+        # cleaning orders
+        for order in open_orders:
+            if order['clientOrderId'][:-6] == order_code:
+                try:
+                    response = self.client.futures_cancel_order(symbol=symbol, orderId=order['orderId']) # Cancelling order
                 
-            except Exception as e:
-                logging.exception(f"Error cancelling orders: {e} ")
+                except Exception as e:
+                    logging.exception(f"{self.operation_code} Error cancelling order: {e} ")
 
         # Clear grid_body after all cancellations
-        self.data_grid['grid_body'] = []
-        logging.info(f"All grid orders cancelled and cleared.")
+        logging.info(f"{self.operation_code} All {code.upper()} orders cancelled and cleared.")
 
             
     # post a limit order for grid body
@@ -438,26 +439,7 @@ class LUGrid:
             logging.exception(f"{self.operation_code} Posting grid orders: Missing key in order data: {e}")
         except Exception as e:
             logging.exception(f"Error posting grid data: {e}")
-    
-       
-    # clean stop loss order
-    def clean_sl_order(self):
-        logging.debug(f"{self.operation_code} CLEANING STOP LOSS ORDER FROM BINANCE...")
-        
-        order_id = self.data_grid['stop_loss_line'].get('order_id', 0)
-     
-        # Check if there is an existing stop loss order to cancel
-        if order_id:
-            try:
-                self.client.futures_cancel_order(symbol=self.data_grid['symbol']['value'], orderId=order_id)
-                self.data_grid['stop_loss_line']['price'] = 0
-                self.data_grid['stop_loss_line']['quantity'] = 0
-                self.data_grid['stop_loss_line']['order_id'] = 0
-                self.data_grid['stop_loss_line']['client_order_id'] = "SL_"
-            except Exception as e:
-                logging.exception(f"{self.operation_code} Error cancelling stop loss order {order_id} for {self.data_grid['symbol']}: {e}")
-                logging.info(f"{self.operation_code} ⛔️ Error cancelling stop loss order {order_id} for {self.data_grid['symbol']}: {e}")
-            
+                
     
     # post entry order
     def post_sl_order(self):
@@ -496,23 +478,6 @@ class LUGrid:
 
 
 
-    # clean take profit order
-    def clean_tp_order(self):
-        logging.debug(f"{self.operation_code} CLEANING TAKE PROFIT ORDERS FROM BINANCE...")
-        
-        order_id = self.data_grid['take_profit_line'].get('order_id', 0)
-     
-        # Check if there is an existing unload order to cancel
-        if order_id:
-            try:
-                self.client.futures_cancel_order(symbol=self.data_grid['symbol']['value'], orderId=order_id)
-                self.data_grid['take_profit_line']['price'] = 0
-                self.data_grid['take_profit_line']['quantity'] = 0
-                self.data_grid['take_profit_line']['order_id'] = 0
-                self.data_grid['take_profit_line']['client_order_id'] = "TP_"
-            except Exception as e:
-                logging.exception(f"{self.operation_code} Error cancelling take profit order {order_id} for {self.data_grid['symbol']}: {e}")
-                logging.info(f"{self.operation_code} ⛔️ Error cancelling take profit order {order_id} for {self.data_grid['symbol']}: {e}")
             
 
     # post take profit order
@@ -549,26 +514,7 @@ class LUGrid:
 
         return None
     
-    
-    # clean unload order
-    def clean_ul_order(self):
-        logging.debug(f"{self.operation_code} CLEANING UNLOAD_LINE...")
-        order_id = self.data_grid['unload_line']['order_id']
-    
-        # Check if there is an existing unload order to cancel
-        if order_id:
-            try:
-                response = self.client.futures_cancel_order(symbol=self.data_grid['symbol']['value'], orderId=order_id)
-                #self.data_grid['unload_line']['price'] = 0
-                #self.data_grid['unload_line']['quantity'] = 0
-                #self.data_grid['unload_line']['order_id'] = 0
-                #self.data_grid['unload_line']['client_order_id'] = "UL_"
-                logging.debug(f"{self.operation_code} unload_line to cancel: {self.data_grid['unload_line']}")
-                logging.debug(f"{self.operation_code} canceling unload_line, binance response: {response}")
             
-            except Exception as e:
-                logging.exception(f"{self.operation_code} Error cancelling unload_line {order_id} for {self.data_grid['symbol']}: {e}")
-        
     
     # post unload order
     def post_ul_order(self):

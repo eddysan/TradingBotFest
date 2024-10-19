@@ -61,7 +61,7 @@ def on_message(ws, message):
                 case "GD": #the event taken is in grid
                     logging.info(f"{operation_code} GD order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() #read current position
-                    grid.clean_ul_order()
+                    grid.clean_order('UL') # clean unload order if there is an unload order opened
                     grid.post_ul_order()
                     grid.write_data_grid() # saving all configuration to json
 
@@ -69,10 +69,12 @@ def on_message(ws, message):
                     logging.info(f"{operation_code} UL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                     grid.update_current_position() #read current position
                     grid.update_entry_line() # updating entry line from current_line values
-                    grid.clean_open_orders() # clean all open orders
+                    grid.clean_order('GD') # clean grid orders
+                    grid.clean_order('TP') # clean take profit orders
+                    grid.clean_order('SL') # clean stop loss order
                     grid.generate_grid() # generate new grid points
-                    grid.post_grid_order() # generate new grid and post it, taking entry price as entry and post it
                     grid.post_sl_order() # post stop loss order
+                    grid.post_grid_order() # generate new grid and post it, taking entry price as entry and post it
                     grid.post_tp_order() # post take profit order
                     grid.write_data_grid() # saving all configuration to json
                     

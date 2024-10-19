@@ -1,4 +1,5 @@
 .DS_Store
-ops/*
-logs/*
+ops/
+logs/
+__pycache__/
 test.py
