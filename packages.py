@@ -5,6 +5,7 @@ import json
 from binance.client import Client
 import math
 import logging
+import time
 
 # Reading json file, the json_file_path should include directory + file + .json extension
 def read_data_grid(json_file_path):
@@ -13,7 +14,7 @@ def read_data_grid(json_file_path):
         if os.path.isfile(json_file_path):
             with open(json_file_path, 'r') as file:
                 config_file = json.load(file)
-                logging.info(f"Successfully loaded data_grid file: {json_file_path}")
+                logging.debug(f"Successfully loaded data_grid file: {json_file_path}")
                 return config_file
         else:
             logging.warning(f"data_grid file '{json_file_path}' not found")
@@ -144,6 +145,10 @@ def get_connection():
 
         # Initialize the Binance client
         client = Client(api_key, api_secret)
+        client.ping()  # Ensure connection
+        client.get_server_time() # getting server time from binance
+        # Enable time synchronization
+        client.timestamp_offset = client.get_server_time()['serverTime'] - int(time.time() * 1000)
         return client
     
     except FileNotFoundError:

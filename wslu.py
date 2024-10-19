@@ -116,7 +116,7 @@ def start_futures_stream():
 
         # Run the WebSocket connection
         ws.on_open = on_open
-        ws.run_forever()
+        ws.run_forever(ping_interval=60, ping_timeout=10)
 
         # Keep the stream alive by renewing the listen key every 30 minutes
         while True:
@@ -125,6 +125,7 @@ def start_futures_stream():
 
     except Exception as e:
         print(f"Error in WebSocket connection: {str(e)}")
+        time.sleep(5)  # Wait before attempting to reconnect
 
 def close_websocket():
     """Close the WebSocket connection."""
