@@ -29,6 +29,7 @@
       "value": 10.0,
       "on_stable": true
   },
+  "wallet_balance_usdt": 0,
   "price_precision": 0,
   "quantity_precision": 0,
   "tick_size": 0,

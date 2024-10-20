@@ -28,7 +28,7 @@ logger.addHandler(file_handler)
 
 
 # Reading default config file
-config_file = read_data_grid("config.json")
+config_file = read_config_data("config/config.json")
 
 operation_code = input_data(config_file)
 

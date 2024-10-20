@@ -8,7 +8,7 @@ import logging
 import time
 
 # Reading json file, the json_file_path should include directory + file + .json extension
-def read_data_grid(json_file_path):
+def read_config_data(json_file_path):
     try:
         # Attempt to load file
         if os.path.isfile(json_file_path):
@@ -24,11 +24,35 @@ def read_data_grid(json_file_path):
         return 
 
 # Writting json data grid file
-def write_data_grid(directory, file_name, data_grid):
+def write_config_data(directory, file_name, data_grid):
     os.makedirs(directory, exist_ok=True) # if directory doesn't exist, it will be created
     xfile = f"{directory}/{file_name}" # file name should have extension to
     with open(xfile, 'w') as file:
         json.dump(data_grid, file, indent=4)  # Pretty-print JSON
+    return None
+
+def update_config():
+    # updating exchange info
+    directory = 'config'
+    file_name = 'exchange_info.json'
+    mod_time = os.path.getmtime(f"{directory}/{file_name}")
+    mod_datetime = datetime.fromtimestamp(mod_time)
+    current_time = datetime.now()
+    
+    time_difference = current_time - mod_datetime
+    days_since_mod = time_difference.days
+    
+    if days_since_mod > 1: # if the file has more than 1 day then get exchange info and overwrite
+        client = get_connection()
+        info = client.get_exchange_info()
+        write_config_data(directory, file_name, info)
+    
+        # getting wallet balance
+        usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
+        data_grid = read_config_data('config/config.json')
+        data_grid['wallet_balance_usdt'] = usdt_balance
+        write_config_data(directory, 'config.json', data_grid) # updating wallet balance
+    
     return None
 
 # input data from console
@@ -39,17 +63,18 @@ def input_data(config_file):
         user_input = input(prompt).strip()
         return cast_func(user_input) if user_input else default_value
     
-    client = get_connection()  # Open Binance connection
+    update_config() # update config
+    #client = get_connection()  # Open Binance connection
 
     # Asking for INPUT symbol
     if config_file['symbol']['input']:   
         config_file['symbol']['value'] = get_input("Token Pair like (BTC): ", "BTC").upper() + "USDT"
 
     # Getting precisions for the symbol
-    info = client.futures_exchange_info()['symbols']
+    info = read_config_data('config/exchange_info.json')['symbols']
     symbol_info = next((x for x in info if x['symbol'] == config_file['symbol']['value']), None)
     
-    # Retrieve precision filters
+    # Retrieve precision filter 
     for f in symbol_info['filters']:
         if f['filterType'] == 'LOT_SIZE':
             config_file['step_size'] = float(f['stepSize'])
@@ -79,7 +104,7 @@ def input_data(config_file):
     # Compound calculation
     if config_file['compound']['enabled']:
         # Get wallet balance
-        usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
+        usdt_balance = config_file['wallet_balance_usdt']
         config_file['compound']['quantity'] = round(float(usdt_balance) * config_file['compound']['risk'], 2)
         config_file['stop_loss_amount']['value'] = config_file['compound']['quantity']
         config_file['entry_quantity']['value'] = round(config_file['compound']['quantity'] / config_file['entry_price']['value'], config_file['quantity_precision']) # convert risk proportion of wallet (compound) to entry quantity
@@ -128,7 +153,7 @@ def input_data(config_file):
     config_file['operation_code'] = operation_code
 
     # writting to data grid
-    write_data_grid('ops', operation_code + ".json", config_file)
+    write_config_data('ops', operation_code + ".json", config_file)
         
     return operation_code
 
@@ -188,7 +213,7 @@ class LUGrid:
     def read_data_grid(self):
         logging.debug(f"{self.operation_code} READING DATA_GRID FILE...")
         operation_file = f"ops/{self.operation_code}.json"
-        fallback_file = "config.json"  # The fallback file
+        fallback_file = "config/config.json"  # The fallback file
 
         try:
             # Attempt to load the primary file
