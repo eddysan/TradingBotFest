@@ -4,7 +4,7 @@ import time
 from packages import *
 
 # Reading default config file
-config_file = read_data_grid("config.json")
+config_file = read_config_data("config/config.json")
 
 config_file['entry_quantity']['on_stable'] = False # the imput process will get tokens, not USDT
 
