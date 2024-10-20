@@ -1,134 +1,134 @@
 {
-  "operation_code": "NONE",
-  "symbol": {
-      "input": true,
-      "value": "NONE"
-  },
-  "side": {
-      "input": true,
-      "value": "LONG"
-  },
-  "grid_distance": {
-      "input": true,
-      "value": 0.02
-  },
-  "quantity_increment": {
-      "input": true,
-      "value": 0.4
-  },
-  "stop_loss_amount": {
-      "input": true,
-      "value": 10.0
-  },
-  "entry_price": {
-      "input": true,
-      "value": 0
-  },
-  "entry_quantity": {
-      "input": true,
-      "value": 10.0,
-      "on_stable": true
-  },
-  "wallet_balance_usdt": 0,
-  "price_precision": 0,
-  "quantity_precision": 0,
-  "tick_size": 0,
-  "step_size": 0,
-  "compound": {
-      "enabled": false,
-      "risk": 0.10,
-      "quantity": 0        
-  },
-  "entry_line": {
-    "entry": "IN",
-    "side": "BUY",
-    "position_side": "LONG",
-    "price": 0,
-    "quantity": 0,
-    "cost": 0,
-    "order_id": 0,
-    "status": "NEW",
-    "client_order_id": ""
-  },
-  "take_profit_line": {
-    "entry": "TP",
-    "side": "SELL",
-    "position_side": "LONG",
-    "distance": 0.03,
-    "price": 0,
-    "quantity": 0,
-    "cost": 0,
-    "order_id": 0,
-    "status": "NEW",
-    "client_order_id": ""
-  },
-  "unload_line": {
-    "entry": "UL",
-    "side": "SELL",
-    "position_side": "LONG",
-    "distance": 0.005,
-    "price": 0,
-    "quantity": 0,
-    "cost": 0,
-    "order_id": 0,
-    "status": "NEW",
-    "client_order_id": ""
-  },
-  "stop_loss_line": {
-    "entry": "SL",
-    "side": "SELL",
-    "position_side": "LONG",
-    "distance": 0,
-    "price": 0,
-    "quantity": 0,
-    "cost": 0,
-    "order_id": 0,
-    "status": "NEW",
-    "client_order_id": ""
-  },
-  "average_line": {
-    "price": 0,
-    "quantity": 0,
-    "sl_distance": 0
-  },
+    "operation_code": "NONE",
+    "symbol": {
+        "input": true,
+        "value": "NONE"
+    },
+    "side": {
+        "input": true,
+        "value": "LONG"
+    },
+    "grid_distance": {
+        "input": true,
+        "value": 0.02
+    },
+    "quantity_increment": {
+        "input": true,
+        "value": 0.4
+    },
+    "stop_loss_amount": {
+        "input": true,
+        "value": 10.0
+    },
+    "entry_price": {
+        "input": true,
+        "value": 0
+    },
+    "entry_quantity": {
+        "input": true,
+        "value": 10.0,
+        "on_stable": true
+    },
+    "wallet_balance_usdt": "129.69760465",
+    "price_precision": 0,
+    "quantity_precision": 0,
+    "tick_size": 0,
+    "step_size": 0,
+    "compound": {
+        "enabled": true,
+        "risk": 0.1,
+        "quantity": 0
+    },
+    "entry_line": {
+        "entry": "IN",
+        "side": "BUY",
+        "position_side": "LONG",
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "take_profit_line": {
+        "entry": "TP",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.03,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "unload_line": {
+        "entry": "UL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.005,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "stop_loss_line": {
+        "entry": "SL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "NEW",
+        "client_order_id": ""
+    },
+    "average_line": {
+        "price": 0,
+        "quantity": 0,
+        "sl_distance": 0
+    },
     "current_line": {
-      "price": 0,
-      "quantity": 0,
-      "position_side": "LONG"
+        "price": 0,
+        "quantity": 0,
+        "position_side": "LONG"
     },
-  "grid_body": [
-    {
-      "entry": 1,
-      "side": "BUY",
-      "position_side": "LONG",
-      "price": 0,
-      "quantity": 0,
-      "cost": 0,
-      "order_id": 0,
-      "status": "NEW",
-      "client_order_id": ""
-    },
-    {
-      "entry": 2,
-      "side": "BUY",
-      "position_side": "LONG",
-      "price": 0,
-      "quantity": 0,
-      "cost": 0,
-      "order_id": 0,
-      "status": "NEW",
-      "client_order_id": "GD2410071120hfuwe"
-    },
-    {
-      "entry": 3,
-      "side": "BUY",
-      "position_side": "LONG",
-      "price": 0,
-      "quantity": 0,
-      "cost": 0,
-      "order_id": 0,
-      "status": "NEW",
-      "client_order_id": "GD2410071120hfuwe"
-    }
-  ]
+    "grid_body": [
+        {
+            "entry": 1,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0,
+            "quantity": 0,
+            "cost": 0,
+            "order_id": 0,
+            "status": "NEW",
+            "client_order_id": ""
+        },
+        {
+            "entry": 2,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0,
+            "quantity": 0,
+            "cost": 0,
+            "order_id": 0,
+            "status": "NEW",
+            "client_order_id": "GD2410071120hfuwe"
+        },
+        {
+            "entry": 3,
+            "side": "BUY",
+            "position_side": "LONG",
+            "price": 0,
+            "quantity": 0,
+            "cost": 0,
+            "order_id": 0,
+            "status": "NEW",
+            "client_order_id": "GD2410071120hfuwe"
+        }
+    ]
 }

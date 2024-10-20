@@ -33,9 +33,8 @@ def write_config_data(directory, file_name, data_grid):
 
 def update_config():
     # updating exchange info
-    directory = 'config'
     file_name = 'exchange_info.json'
-    mod_time = os.path.getmtime(f"{directory}/{file_name}")
+    mod_time = os.path.getmtime(f"config/{file_name}")
     mod_datetime = datetime.fromtimestamp(mod_time)
     current_time = datetime.now()
     
@@ -44,14 +43,15 @@ def update_config():
     
     if days_since_mod > 1: # if the file has more than 1 day then get exchange info and overwrite
         client = get_connection()
-        info = client.get_exchange_info()
-        write_config_data(directory, file_name, info)
+        info = client.futures_exchange_info()
+        write_config_data('config', file_name, info)
     
         # getting wallet balance
-        usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
-        data_grid = read_config_data('config/config.json')
-        data_grid['wallet_balance_usdt'] = usdt_balance
-        write_config_data(directory, 'config.json', data_grid) # updating wallet balance
+        #usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
+        wallet_balance = client.futures_account_balance()
+        #data_grid = read_config_data('config/config.json')
+        #data_grid['wallet_balance_usdt'] = usdt_balance
+        write_config_data('config', 'wallet_balance.json', wallet_balance) # updating wallet balance
     
     return None
 
@@ -71,6 +71,8 @@ def input_data(config_file):
         config_file['symbol']['value'] = get_input("Token Pair like (BTC): ", "BTC").upper() + "USDT"
 
     # Getting precisions for the symbol
+    #info = client.get_exchange_info()['symbols']
+    #info2 = client.futures_exchange_info()['symbols']
     info = read_config_data('config/exchange_info.json')['symbols']
     symbol_info = next((x for x in info if x['symbol'] == config_file['symbol']['value']), None)
     
@@ -104,7 +106,8 @@ def input_data(config_file):
     # Compound calculation
     if config_file['compound']['enabled']:
         # Get wallet balance
-        usdt_balance = config_file['wallet_balance_usdt']
+        #usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
+        usdt_balance = next((b['balance'] for b in read_config_data('config/wallet_balance.json') if b["asset"] == "USDT"), 0.0) 
         config_file['compound']['quantity'] = round(float(usdt_balance) * config_file['compound']['risk'], 2)
         config_file['stop_loss_amount']['value'] = config_file['compound']['quantity']
         config_file['entry_quantity']['value'] = round(config_file['compound']['quantity'] / config_file['entry_price']['value'], config_file['quantity_precision']) # convert risk proportion of wallet (compound) to entry quantity

@@ -1,11 +1,8 @@
 {
     "timezone": "UTC",
-    "serverTime": 1729375209988,
+    "serverTime": 1729454406890,
     "futuresType": "U_MARGINED",
     "rateLimits": [
-
-
-
         {
             "rateLimitType": "REQUEST_WEIGHT",
             "interval": "MINUTE",
