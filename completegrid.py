@@ -6,7 +6,13 @@ from packages import *
 # Reading default config file
 config_file = read_config_data("config/config.json")
 
+config_file['grid_distance']['input'] = True
+config_file['quantity_increment']['value'] = True
+config_file['stop_loss_amount']['value'] = True
+config_file['entry_price']['input'] = True
+config_file['entry_quantity']['input'] = True
 config_file['entry_quantity']['on_stable'] = False # the imput process will get tokens, not USDT
+config_file['compound']['enabled'] = False
 
 # input data from terminal and save to operations folder
 operation_code = input_data(config_file)
