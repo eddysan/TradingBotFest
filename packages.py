@@ -31,29 +31,6 @@ def write_config_data(directory, file_name, data_grid):
         json.dump(data_grid, file, indent=4)  # Pretty-print JSON
     return None
 
-def update_config():
-    # updating exchange info
-    file_name = 'exchange_info.json'
-    mod_time = os.path.getmtime(f"config/{file_name}")
-    mod_datetime = datetime.fromtimestamp(mod_time)
-    current_time = datetime.now()
-    
-    time_difference = current_time - mod_datetime
-    days_since_mod = time_difference.days
-    
-    if days_since_mod > 1: # if the file has more than 1 day then get exchange info and overwrite
-        client = get_connection()
-        info = client.futures_exchange_info()
-        write_config_data('config', file_name, info)
-    
-        # getting wallet balance
-        #usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
-        wallet_balance = client.futures_account_balance()
-        #data_grid = read_config_data('config/config.json')
-        #data_grid['wallet_balance_usdt'] = usdt_balance
-        write_config_data('config', 'wallet_balance.json', wallet_balance) # updating wallet balance
-    
-    return None
 
 # input data from console
 def input_data(config_file):
@@ -91,6 +68,11 @@ def input_data(config_file):
     config_file['price_precision'] = symbol_info['pricePrecision']
     config_file['quantity_precision'] = symbol_info['quantityPrecision']
 
+    # INPUT entry price
+    if config_file['entry_price']['input']:
+        tick_increment = int(abs(math.log10(config_file['tick_size'])))
+        config_file['entry_price']['value'] = round(get_input("Entry Price: ", 0.0, float), tick_increment)
+
     # INPUT side (default to LONG)
     if config_file['side']['input']:
         config_file['side']['value'] = get_input("Side [LONG]: ", "LONG", str).upper()
@@ -106,11 +88,6 @@ def input_data(config_file):
     # INPUT stop_loss_amount
     if config_file['stop_loss_amount']['input']:
         config_file['stop_loss_amount']['value'] = get_input(f"Stop Loss Amount [{config_file['compound']['quantity']}$]: ", config_file['compound']['quantity'], float)
-
-    # INPUT entry price
-    if config_file['entry_price']['input']:
-        tick_increment = int(abs(math.log10(config_file['tick_size'])))
-        config_file['entry_price']['value'] = round(get_input("Entry Price: ", 0.0, float), tick_increment)
     
     # INPUT quantity
     if config_file['entry_quantity']['input']: # if entry quantity is enabled

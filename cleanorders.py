@@ -49,7 +49,3 @@ if side == 'ALL':
     grid.clean_open_orders()
     grid.write_data_grid()
         
-        
-
-
-
