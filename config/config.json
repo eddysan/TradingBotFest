@@ -26,13 +26,15 @@
     },
     "entry_quantity": {
         "input": true,
-        "value": 10.0,
-        "on_stable": true
+        "value": 10.0
     },
     "price_precision": 0,
     "quantity_precision": 0,
     "tick_size": 0,
     "step_size": 0,
+    "wallet":{
+        "usdt_balance": 0.0
+    },
     "compound": {
         "enabled": true,
         "risk": 0.1,

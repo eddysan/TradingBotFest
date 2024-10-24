@@ -1,6 +1,8 @@
 import json
 from binance.client import Client
 import time
+import logging
+import os
 from packages import *
 
 # logging config
@@ -13,7 +15,7 @@ logger.setLevel(logging.DEBUG)  # Overall logger level
 console_handler = logging.StreamHandler()  # Logs to console
 console_handler.setLevel(logging.INFO)  # Only log INFO and above to console
 
-file_handler = logging.FileHandler(f"logs/open_orders.log")  # Logs to file
+file_handler = logging.FileHandler(f"logs/positions.log")  # Logs to file
 file_handler.setLevel(logging.DEBUG)  # Log DEBUG and above to file
 
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s') # formatter
@@ -26,17 +28,28 @@ if logger.hasHandlers(): # Clear any previously added handlers (if needed)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
+# INPUT symbol 
+symbol = input("Symbol [BTC]: ").upper() + "USDT"
 
-# Reading default config file
-config_file = read_config_data("config/config.json")
+# INPUT side (default to LONG)
+side = input("Side to clean: [LONG|SHORT|ALL]: ").upper() or 'ALL'
 
-operation_code = input_data(config_file)
+if side != 'ALL':
+    operation_code = f"{symbol}-{side}"
+    grid = LUGrid(operation_code)
+    grid.clean_order('IN')
+    grid.clean_order('GD') # clean grid orders
+    grid.clean_order('TP') # clean take profit orders
+    grid.clean_order('SL') # clean stop loss order
+    grid.write_data_grid()
+
+if side == 'ALL':
+    operation_code = f"{symbol}-LONG"
+    grid = LUGrid(operation_code)
+    grid.clean_open_orders()
+    grid.write_data_grid()
+        
+        
 
 
-grid = LUGrid(operation_code)
-grid.generate_grid()
-grid.post_entry_order()
-grid.post_grid_order()
-grid.post_sl_order()
-grid.write_data_grid()
 

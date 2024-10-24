@@ -58,22 +58,27 @@ def update_config():
 # input data from console
 def input_data(config_file):
     logging.debug(f"INPUT DATA...")
+    
+    client = get_connection()  # Open Binance connection
+        
     # Helper to safely get user input with default fallback
     def get_input(prompt, default_value=None, cast_func=str):
         user_input = input(prompt).strip()
         return cast_func(user_input) if user_input else default_value
     
-    update_config() # update config
-    #client = get_connection()  # Open Binance connection
+    #update_config() # update config
 
-    # Asking for INPUT symbol
+    # INPUT symbol
     if config_file['symbol']['input']:   
-        config_file['symbol']['value'] = get_input("Token Pair like (BTC): ", "BTC").upper() + "USDT"
+        config_file['symbol']['value'] = get_input("Symbol [BTC]: ", "BTC").upper() + "USDT"
+
+    # getting wallet current balance
+    config_file['wallet']['usdt_balance'] = round(next((float(b['balance']) for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0), 2)
+    config_file['compound']['quantity'] = round(float(config_file['wallet']['usdt_balance']) * config_file['compound']['risk'], 2)
 
     # Getting precisions for the symbol
-    #info = client.get_exchange_info()['symbols']
-    #info2 = client.futures_exchange_info()['symbols']
-    info = read_config_data('config/exchange_info.json')['symbols']
+    info = client.futures_exchange_info()['symbols']
+    #info = read_config_data('config/exchange_info.json')['symbols']
     symbol_info = next((x for x in info if x['symbol'] == config_file['symbol']['value']), None)
     
     # Retrieve precision filter 
@@ -88,44 +93,29 @@ def input_data(config_file):
 
     # INPUT side (default to LONG)
     if config_file['side']['input']:
-        config_file['side']['value'] = get_input("Grid Side (LONG): ", "LONG", str).upper()
+        config_file['side']['value'] = get_input("Side [LONG]: ", "LONG", str).upper()
+
+    # INPUT grid distance
+    if config_file['grid_distance']['input']:
+        config_file['grid_distance']['value'] = get_input("Grid Distance [2%]: ", 2, float) / 100 # default valur for grid distance is 2%
+
+    # INPUT token increment
+    if config_file['quantity_increment']['input']:
+        config_file['quantity_increment']['value'] = get_input("Token Increment [40%]: ", 40, float) / 100 # default increment is 40%
+
+    # INPUT stop_loss_amount
+    if config_file['stop_loss_amount']['input']:
+        config_file['stop_loss_amount']['value'] = get_input(f"Stop Loss Amount [{config_file['compound']['quantity']}$]: ", config_file['compound']['quantity'], float)
 
     # INPUT entry price
     if config_file['entry_price']['input']:
         tick_increment = int(abs(math.log10(config_file['tick_size'])))
         config_file['entry_price']['value'] = round(get_input("Entry Price: ", 0.0, float), tick_increment)
-
-    # INPUT grid distance
-    if config_file['grid_distance']['input']:
-        config_file['grid_distance']['value'] = get_input("Grid Distance (2%): ", 2, float) / 100 # default valur for grid distance is 2%
-
-    # INPUT token increment
-    if config_file['quantity_increment']['input']:
-        config_file['quantity_increment']['value'] = get_input("Token Increment (40%): ", 40, float) / 100 # default increment is 40%
-
-    # Compound calculation
-    if config_file['compound']['enabled']:
-        # Get wallet balance
-        #usdt_balance = next((b['balance'] for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0)
-        usdt_balance = next((b['balance'] for b in read_config_data('config/wallet_balance.json') if b["asset"] == "USDT"), 0.0) 
-        config_file['compound']['quantity'] = round(float(usdt_balance) * config_file['compound']['risk'], 2)
-        config_file['stop_loss_amount']['value'] = config_file['compound']['quantity']
-        config_file['entry_quantity']['value'] = round(config_file['compound']['quantity'] / config_file['entry_price']['value'], config_file['quantity_precision']) # convert risk proportion of wallet (compound) to entry quantity
-        config_file['stop_loss_amount']['input'] = False
-        config_file['entry_quantity']['input'] = False
-
-    # INPUT stop_loss_amount
-    if config_file['stop_loss_amount']['input']:
-        config_file['stop_loss_amount']['value'] = get_input("Stop Loss Amount ($10): ", 10.0, float)
     
     # INPUT quantity
     if config_file['entry_quantity']['input']: # if entry quantity is enabled
-        if config_file['entry_quantity']['on_stable'] == True: # if on_stable is enabled, the input will be in USDT not in tokens
-            entry_q = round(get_input("Entry Quantity ($10): ", 10.0, float), 2) # getting quantity in USDT
-            config_file['entry_quantity']['value'] = round(entry_q / config_file['entry_price']['value'], config_file['quantity_precision']) #converting USDT entry to tokens
-
-        if config_file['entry_quantity']['on_stable'] == False: # if on_stable is false, then the input will get quantity as tokens
-            config_file['entry_quantity']['value'] = round(get_input(f"Entry Quantity of ({config_file['symbol']['value']}): ", 0.0, float), config_file['quantity_precision'])
+        entry_q = round(get_input(f"Entry Quantity [{config_file['compound']['quantity']}$]: ", config_file['compound']['quantity'], float), 2) # getting quantity in USDT
+        config_file['entry_quantity']['value'] = round(entry_q / config_file['entry_price']['value'], config_file['quantity_precision']) #converting USDT entry to tokens
     
     # cleaning grid body    
     config_file['grid_body'] = []
@@ -148,7 +138,6 @@ def input_data(config_file):
     # stop_loss_line filling data
     config_file['stop_loss_line']['side'] = 'SELL' if config_file['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the SL should be SELL
     config_file['stop_loss_line']['position_side'] = config_file['side']['value']
-
     
     # Generate operation code
     #operation_code = gen_date_code() + "-" + str(config_file['symbol']['value'])[:-4] + "-" + str(config_file['side']['value'])[0]
@@ -175,19 +164,15 @@ def get_connection():
         client = Client(api_key, api_secret)
         client.ping()  # Ensure connection
         client.get_server_time() # getting server time from binance
-        # Enable time synchronization
-        client.timestamp_offset = client.get_server_time()['serverTime'] - int(time.time() * 1000)
+        client.timestamp_offset = client.get_server_time()['serverTime'] - int(time.time() * 1000) # Enable time synchronization
         return client
     
     except FileNotFoundError:
         logging.FileNotFoundError("Error: credentials.json file not found. Please check the file path.")
-        logging.info("Error: credentials.json file not found. Please check the file path.")
     except KeyError:
         logging.KeyError("Error: Invalid format in credentials.json. Missing 'api_key' or 'api_secret'.")
-        logging.info("Error: Invalid format in credentials.json. Missing 'api_key' or 'api_secret'.")
     except Exception as e:
         logging.exception(f"Binance connection error, check credentials or internet: {e}")
-        logging.info(f"Binance connection error, check credentials or internet: {e}")
     
     return None  # Return None explicitly if the connection fails
 
