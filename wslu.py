@@ -35,15 +35,21 @@ client = get_connection()
 
 def on_message(ws, message):
     logging.debug(f"Received message: {message}")
-    message = json.loads(message) #message received
+    #message = json.loads(message) #message received
+    message = read_config_data('message.json')
 
     if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
         symbol = message['o']['s']  # Symbol (e.g., XRPUSDT)
         #order_status = message['o']['X']  # Order status (e.g., FILLED, NEW)
-        order_id = message['o']['i']  # Order ID
-        kind_order = str(message['o']['c'])[:2] #getting kind of operation on grid (GD, TP, SL, IN, UL etc)
-        operation_code = str(message['o']['c']).split('_')[1] # getting operation code
+        client_order_id = str(message['o']['c']).split('_')  # client order id
+        kind_order = client_order_id[0] #getting kind of operation on grid (GD, TP, SL, IN, UL etc)
+        entry_number = int(client_order_id[1]) # number of entry like 1, 2, 3 in grid
+        operation_code = client_order_id[2] # getting operation order like ADAUSDT-LONG
         logging.debug(f"Processing message for: {symbol} with operation: {operation_code} and order: {kind_order}")
+        
+        if kind_order not in ['IN', 'GD', 'SL', 'UL', 'TP', 'HD']:
+            logging.info("invalid kind_order type")
+            return
         
         grid = LUGrid(operation_code)
         logging.debug(f"data_grid[symbol]: {grid.symbol}")
@@ -63,6 +69,12 @@ def on_message(ws, message):
                     grid.update_current_position() #read current position
                     grid.clean_order('UL') # clean unload order if there is an unload order opened
                     grid.post_ul_order()
+                    
+                    # if the until last line is taken, then the SL will be replaced by hedge order
+                    if (entry_number == (len(grid.data_grid['grid_body']) - 1)) and grid.data_grid['hedge'] == True:
+                        grid.clean_order('SL') # clean stop loss order
+                        grid.post_hedge_order()
+                        
                     grid.write_data_grid() # saving all configuration to json
 
                 case "UL": #the event is unload
@@ -72,6 +84,7 @@ def on_message(ws, message):
                     grid.clean_order('GD') # clean grid orders
                     grid.clean_order('TP') # clean take profit orders
                     grid.clean_order('SL') # clean stop loss order
+                    grid.clean_order('HD') # clean hedge order
                     grid.generate_grid() # generate new grid points
                     grid.post_sl_order() # post stop loss order
                     grid.post_grid_order() # generate new grid and post it, taking entry price as entry and post it
@@ -84,6 +97,12 @@ def on_message(ws, message):
                     
                 case "TP": #the event is take profit
                     logging.info(f"{operation_code} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                    # close all open orders from grid list
+                    
+                case "HD": #the event is hedge
+                    logging.info(f"{operation_code} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                    grid.clean_order('UL') # clean unload order if there is an unload order opened
+                    grid.write_data_grid() # saving all configuration to json
                     # close all open orders from grid list
                         
                 case _:

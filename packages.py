@@ -116,6 +116,10 @@ def input_data(config_file):
     config_file['stop_loss_line']['side'] = 'SELL' if config_file['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the SL should be SELL
     config_file['stop_loss_line']['position_side'] = config_file['side']['value']
     
+    # filling hedge line data
+    config_file['hedge_line']['side'] = 'SELL' if config_file['side']['value'] == 'LONG' else 'BUY' #if the operation is LONG then the hedge should be SELL
+    config_file['hedge_line']['position_side'] = config_file['side']['value']
+    
     # Generate operation code
     #operation_code = gen_date_code() + "-" + str(config_file['symbol']['value'])[:-4] + "-" + str(config_file['side']['value'])[0]
     operation_code = config_file['symbol']['value'] + "-" + config_file['side']['value']
@@ -153,8 +157,6 @@ def get_connection():
     
     return None  # Return None explicitly if the connection fails
 
-
-    
 
 
 class LUGrid:
@@ -321,10 +323,17 @@ class LUGrid:
         logging.debug(f"{self.operation_code} grid_body generated: {self.data_grid['grid_body']}")
         logging.debug(f"{self.operation_code} stop_loss_line generated: {self.data_grid['stop_loss_line']}")
         
+        self.data_grid['grid_size'] = len(self.data_grid['grid_body']) # saving length of grid
+        
         # Calculate the take profit price based on the side
         price_factor = 1 + self.data_grid['take_profit_line']['distance'] if self.data_grid['side']['value'] == 'LONG' else 1 - self.data_grid['take_profit_line']['distance']
         self.data_grid['take_profit_line']['price'] = self.round_to_tick_size(self.data_grid['entry_line']['price'] * price_factor)
         logging.debug(f"{self.operation_code} take_profit_line generated: {self.data_grid['take_profit_line']}")
+        
+        # setting for hedge line if I need
+        self.data_grid['hedge_line']['price'] = self.data_grid['stop_loss_line']['price']
+        self.data_grid['hedge_line']['quantity'] = self.data_grid['stop_loss_line']['quantity']
+        self.data_grid['hedge_line']['cost'] = self.data_grid['stop_loss_line']['cost']
         
         logging.debug(f"{self.operation_code} Grid generation completed")
         
@@ -362,7 +371,7 @@ class LUGrid:
                 positionSide = entry_line['position_side'],
                 price = entry_line['price'],
                 quantity = entry_line['quantity'],
-                newClientOrderId = f"IN_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+                newClientOrderId = f"IN_0_{self.operation_code}_{str(uuid.uuid4())[:5]}"
             )
 
             # Update entry_line with order response data
@@ -387,7 +396,6 @@ class LUGrid:
         
         logging.debug(f"{self.operation_code} CLEANING {code.upper()} ORDERS...")
         symbol = self.data_grid['symbol']['value']
-        order_code = f"{code.upper()}_{self.operation_code}" #code to lookfor on orders
         open_orders = self.client.futures_get_open_orders(symbol=symbol) # getting all open orders
 
         if not open_orders:
@@ -396,7 +404,8 @@ class LUGrid:
         
         # cleaning orders
         for order in open_orders:
-            if order['clientOrderId'][:-6] == order_code:
+            coid = order['clientOrderId'].split('_')
+            if coid[0] == code and coid[2] == self.operation_code:
                 try:
                     response = self.client.futures_cancel_order(symbol=symbol, orderId=order['orderId']) # Cancelling order
                 
@@ -420,7 +429,7 @@ class LUGrid:
                     positionSide = self.data_grid['grid_body'][i]['position_side'],
                     price = self.data_grid['grid_body'][i]['price'],  
                     quantity = self.data_grid['grid_body'][i]['quantity'],
-                    newClientOrderId = "GD" + "_" + self.operation_code + "_" + str(uuid.uuid4())[:5]
+                    newClientOrderId = f"GD_{self.data_grid['grid_body'][i]['entry']}_{self.operation_code}_{str(uuid.uuid4())[:5]}"
                     )
                 self.data_grid['grid_body'][i]['order_id'] = response['orderId']
                 self.data_grid['grid_body'][i]['status'] = response['status']
@@ -435,6 +444,36 @@ class LUGrid:
         except Exception as e:
             logging.exception(f"Error posting grid data: {e}")
                 
+    # posting hedge order
+    def post_hedge_order(self):
+        logging.debug(f"{self.operation_code} POSTING HEDGE ORDER...")
+        try:
+            # Post the stop loss order
+            response = self.client.futures_create_order(
+                symbol = self.data_grid['symbol']['value'],
+                side = self.data_grid['hedge_line']['side'],  # SL for LONG is SELL and vice versa
+                positionSide = self.data_grid['hedge_line']['position_side'],
+                type = 'STOP_MARKET',
+                stopPrice = self.data_grid['hedge_line']['price'],
+                quantity = self.data_grid['hedge_line']['quantity'],
+                closePosition = False,
+                newClientOrderId=f"HD_0_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+            )
+            
+            # upgrading hedge line
+            self.data_grid['hedge_line']['order_id'] = response['orderId']
+            self.data_grid['hedge_line']['status'] = response['status']
+            self.data_grid['hedge_line']['client_order_id'] = response['clientOrderId']
+            
+            # log sucess post
+            logging.info(f"{self.operation_code} ✅ {self.data_grid['hedge_line']['entry']} ({round(self.data_grid['hedge_line']['distance']*100, 2)}%) | "
+                  f"{self.data_grid['hedge_line']['price']} | {self.data_grid['hedge_line']['quantity']} | "
+                  f"{self.data_grid['hedge_line']['cost']}")
+            
+        except Exception as e:
+            logging.exception(f"{self.operation_code} Error placing hedge order: {e}")
+
+        return None
     
     # post entry order
     def post_sl_order(self):
@@ -442,13 +481,13 @@ class LUGrid:
         try:
             # Post the stop loss order
             response = self.client.futures_create_order(
-                symbol=self.data_grid['symbol']['value'],
-                side=self.data_grid['stop_loss_line']['side'],  # SL for LONG is SELL and vice versa
-                positionSide=self.data_grid['stop_loss_line']['position_side'],
+                symbol = self.data_grid['symbol']['value'],
+                side = self.data_grid['hedge_line']['side'],  # SL for LONG is SELL and vice versa
+                positionSide = self.data_grid['hedge_line']['position_side'],
                 type='STOP_MARKET',
                 stopPrice=self.data_grid['stop_loss_line']['price'],
                 closePosition=True,
-                newClientOrderId=f"SL_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+                newClientOrderId=f"SL_0_{self.operation_code}_{str(uuid.uuid4())[:5]}"
             )
 
             # Update stop loss line with response data
@@ -471,10 +510,6 @@ class LUGrid:
         return None
 
 
-
-
-            
-
     # post take profit order
     def post_tp_order(self):
         logging.debug(f"{self.operation_code} POSTING TAKE PROFIT ORDER TO BINANCE...")
@@ -487,7 +522,7 @@ class LUGrid:
                 type='TAKE_PROFIT_MARKET',
                 stopPrice=self.data_grid['take_profit_line']['price'],
                 closePosition=True,
-                newClientOrderId=f"TP_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+                newClientOrderId=f"TP_0_{self.operation_code}_{str(uuid.uuid4())[:5]}"
             )
 
             # Update take profit line with response data
@@ -536,7 +571,7 @@ class LUGrid:
                 positionSide=self.data_grid['unload_line']['position_side'],
                 price=self.data_grid['unload_line']['price'],
                 quantity=self.data_grid['unload_line']['quantity'],
-                newClientOrderId=f"UL_{self.operation_code}_{str(uuid.uuid4())[:5]}"
+                newClientOrderId=f"UL_0_{self.operation_code}_{str(uuid.uuid4())[:5]}"
             )
 
             # Update unload line with the response data
