@@ -2,5 +2,6 @@
 .venv/
 ops/
 logs/
+test/
 __pycache__/
 test.py

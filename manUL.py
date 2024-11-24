@@ -44,6 +44,7 @@ logging.info(f"Generating GD from entry_line: {grid.data_grid['entry_line']}")
 grid.clean_order('GD') # clean grid orders
 grid.clean_order('TP') # clean take profit orders
 grid.clean_order('SL') # clean stop loss order
+grid.clean_order('HD') # clean hedge
 grid.generate_grid() # generate new grid points
 grid.post_grid_order() # generate new grid and post it, taking entry price as entry and post it
 grid.post_sl_order() # post stop loss order
