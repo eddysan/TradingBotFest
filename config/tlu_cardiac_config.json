@@ -1,0 +1,95 @@
+{
+    "strategy": "TLU_CARDIAC",
+    "symbol": {
+        "input": true,
+        "value": "NONE"
+    },
+    "side": {
+        "input": true,
+        "value": "LONG"
+    },
+    "quantity_increment": {
+        "input": true,
+        "value": 0
+    },
+    "stop_loss_amount": {
+        "input": true,
+        "value": 10.0
+    },
+    "entry_price": {
+        "input": true,
+        "value": 0
+    },
+    "entry_quantity": {
+        "input": true,
+        "value": 0.0
+    },
+    "price_precision": 0,
+    "quantity_precision": 0,
+    "tick_size": 0,
+    "step_size": 0,
+    "wallet":{
+        "usdt_balance": 0.0
+    },
+    "compound": {
+        "enabled": true,
+        "risk": 0.1,
+        "quantity": 0
+    },
+    "entry_line": {
+        "entry": "IN",
+        "side": "BUY",
+        "position_side": "LONG",
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "EMPTY",
+        "client_order_id": ""
+    },
+    "take_profit_line": {
+        "enabled": true,
+        "entry": "TP",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.01,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "EMPTY",
+        "client_order_id": ""
+    },
+    "unload_line": {
+        "enabled": true,
+        "entry": "UL",
+        "side": "SELL",
+        "position_side": "LONG",
+        "distance": 0.0025,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "EMPTY",
+        "client_order_id": "NONE"
+    },
+    "stop_loss_line": {
+        "entry": "SL",
+        "side": "NONE",
+        "position_side": "LONG",
+        "distance": 0,
+        "price": 0,
+        "quantity": 0,
+        "cost": 0,
+        "order_id": 0,
+        "status": "EMPTY",
+        "client_order_id": "NONE"
+    },
+    "current_line": {
+        "active": false,
+        "price": 0,
+        "distance": 0,
+        "quantity": 0,
+        "position_side": "LONG"
+    }
+}
