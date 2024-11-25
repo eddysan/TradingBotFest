@@ -125,8 +125,6 @@ def input_data(config_file):
         
     return operation_code
 
-
-
 # Define get_connection outside the class
 def get_connection():
     try:

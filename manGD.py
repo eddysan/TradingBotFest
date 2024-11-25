@@ -3,7 +3,7 @@ from binance.client import Client
 import time
 import logging
 import os
-from packages import *
+from tlu_pack import *
 
 # logging config
 os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
@@ -34,7 +34,7 @@ symbol = input("Symbol [BTC]: ").upper() + "USDT"
 # INPUT side (default to LONG)
 side = input("Side [LONG|SHORT]: ").upper() or 'LONG'
 
-operation_code = f"{symbol}-{side}" 
+operation_code = f"{symbol}_{side}"
 
 grid = LUGrid(operation_code)
 
