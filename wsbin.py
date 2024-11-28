@@ -41,7 +41,7 @@ def on_message(ws, message):
     message = json.loads(message) #message received
     symbol = message['o']['s']  # Symbol lie XRPUSDT
     position_side = message['o']['ps']  # position side like LONG or SHORT
-    logging.debug(f"{symbol}_{position_side} RECEIVED MESSAGE: {message}")
+    logging.debug(f"{symbol}_{position_side} MESSAGE RECEIVED: {message}")
 
     if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
         strategy = get_strategy(f"{symbol}_{position_side}") # reading strategy type
