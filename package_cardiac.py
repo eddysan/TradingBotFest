@@ -7,32 +7,7 @@ import math
 import logging
 import time
 from decimal import Decimal
-
-
-
-# Reading json file, the json_file_path should include directory + file + .json extension
-def read_config_data(json_file_path):
-    try:
-        # Attempt to load file
-        if os.path.isfile(json_file_path):
-            with open(json_file_path, 'r') as file:
-                config_file = json.load(file)
-                logging.debug(f"Successfully loaded data_grid file: {json_file_path}")
-                return config_file
-        else:
-            logging.warning(f"data_grid file '{json_file_path}' not found")
-    except (FileNotFoundError, KeyError):
-        logging.exception("Error: Invalid config.json file or not found. Please check the file path and format.")
-        print(f"Error: Invalid {json_file_path} file or not found. Please check the file path and format.")
-        return 
-
-# Writting json data grid file
-def write_config_data(directory, file_name, data_grid):
-    os.makedirs(directory, exist_ok=True) # if directory doesn't exist, it will be created
-    xfile = f"{directory}/{file_name}" # file name should have extension to
-    with open(xfile, 'w') as file:
-        json.dump(data_grid, file, indent=4)  # Pretty-print JSON
-    return None
+from package_common import *
 
 
 # input data from console
@@ -106,39 +81,11 @@ def input_data(config_file):
     return operation_code
 
 
-
-# Define get_connection outside the class
-def get_connection():
-    try:
-        # Load credentials from JSON file
-        with open('../credentials.json', 'r') as file:
-            binance_credentials = json.load(file)
-            api_key = binance_credentials['api_key']
-            api_secret = binance_credentials['api_secret']
-
-        # Initialize the Binance client
-        client = Client(api_key, api_secret)
-        client.ping()  # Ensure connection
-        client.get_server_time() # getting server time from binance
-        client.timestamp_offset = client.get_server_time()['serverTime'] - int(time.time() * 1000) # Enable time synchronization
-        return client
-    
-    except FileNotFoundError:
-        logging.FileNotFoundError("Error: credentials.json file not found. Please check the file path.")
-    except KeyError:
-        logging.KeyError("Error: Invalid format in credentials.json. Missing 'api_key' or 'api_secret'.")
-    except Exception as e:
-        logging.exception(f"Binance connection error, check credentials or internet: {e}")
-    
-    return None  # Return None explicitly if the connection fails
-
-
-
 class CardiacGrid:
     
     def __init__(self, operation_code):
         
-        # geetting operation code
+        # getting operation code
         self.operation_code = operation_code # operation code
         self.data_grid = read_config_data(f"ops/{self.operation_code}.json") # reading config file
         
@@ -187,34 +134,6 @@ class CardiacGrid:
         except Exception as e:
             # if there is no position
             logging.exception(f"{self.operation_code} There is no position information: {e}")
-
-
-    # clean all open orders
-    def clean_open_orders(self):
-        
-        logging.info(f"{self.operation_code} CLEAN ALL OPEN ORDERS...")
-        op_symbol = self.data_grid['symbol']['value']
-        
-        # getting all open orders
-        try:
-            open_orders = self.client.futures_get_open_orders(symbol=op_symbol)
-        
-        except Exception:
-            logging.exception("{self.operation_code} There is no open orders to clear")
-            
-        for order in open_orders:
-            try:
-                # Cancel multiple orders at once
-                response = self.client.futures_cancel_order(symbol=op_symbol, orderId=order['orderId'])
-                logging.debug(f"{self.operation_code} Order to cancel: {order}")
-                logging.debug(f"{self.operation_code} Binance response to cancel: {response}")
-                logging.info(f"{self.operation_code} {response['type']} | Price: {response['price']} | Quantity: {response['origQty']}")
-
-            except Exception as e:
-                logging.exception(f"{self.operation_code} Error cancelling orders: {e} ")
-
-        logging.info(f"{self.operation_code} All open orders cancelled and cleared.")
-
 
     # generate entry_line
     def generate_entry(self):

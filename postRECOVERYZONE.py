@@ -5,7 +5,7 @@ import sys
 import json
 from binance.client import Client
 import time
-from tlu_cardiac_pack import *
+from package_cardiac import *
 
 # Activating the virtual environment
 venv_path = os.path.join(os.path.dirname(__file__), '.venv/bin/activate_this.py')
@@ -37,14 +37,9 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 # Reading default config file
-config_file = read_config_data("config/tlu_cardiac_config.json")
+config_file = read_config_data("config/cardiac.config")
 
 operation_code = input_data(config_file)
 
-grid = CardiacGrid(operation_code)
 
-grid.generate_entry()
-grid.post_entry_order()
-
-grid.write_data_grid()
 

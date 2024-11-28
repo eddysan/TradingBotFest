@@ -4,8 +4,10 @@ from binance.streams import BinanceSocketManager
 from websocket import WebSocketApp
 import time
 import logging
-from tlu_pack import *
-from tlu_cardiac_pack import *
+from package_common import *
+from package_tlu import *
+from package_cardiac import *
+from package_clean import *
 
 # logging config
 os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
@@ -36,60 +38,48 @@ ws = None  # Global variable for WebSocket connection
 client = get_connection()
 
 def on_message(ws, message):
-    logging.debug(f"Received message: {message}")
     message = json.loads(message) #message received
-    #message = read_config_data('message.json')
+    symbol = message['o']['s']  # Symbol lie XRPUSDT
+    position_side = message['o']['ps']  # position side like LONG or SHORT
+    logging.debug(f"{symbol}_{position_side} RECEIVED MESSAGE: {message}")
 
     if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
-        symbol = message['o']['s']  # Symbol (e.g., XRPUSDT)
-        position_side = message['o']['ps'] #position side like LONG or SHORT
-        operation_code = f"{symbol}_{position_side}"   # getting operation order like ADAUSDT_LONG
-        
-        if not os.path.isfile(f"ops/{symbol}_{position_side}.json"): # if operation file doesn't exists
-            logging.info(f"{symbol}_{position_side}.json doesn't exist")
-            return
-        
-        operation_file = read_config_data(f"ops/{symbol}_{position_side}.json")
-        strategy = operation_file['strategy'] # reading strategy type
+        strategy = get_strategy(f"{symbol}_{position_side}") # reading strategy type
 
         match strategy:
             case "TLU_GRID": # Load and UnLoad strategy, static grid
+                transaction_type = get_transaction_type(message)
                 client_order_id = str(message['o']['c']).split('_')  # client order id
-                coi_symbol = client_order_id[0] # like ADAUSDT or 1000PEPEUSDT
-                coi_side = client_order_id[1] # SHORT or LONG
-                coi_kind_order = client_order_id[2] # (GD, TP, SL, IN, UL etc)
                 coi_entry_number = int(client_order_id[3]) # number of entry like 1, 2, 3 in grid
 
-                grid = LUGrid(operation_code)
+                grid = LUGrid(f"{symbol}_{position_side}")
                 
-                match coi_kind_order:
+                match transaction_type:
                     case "IN": #the event is entry
-                        logging.info(f"{operation_code} IN order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        logging.info(f"{symbol}_{position_side} IN order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() # read position information at first the position will be same as entry_line
                         grid.post_tp_order() # when an entry line is taken, then take profit will be posted
                         grid.write_data_grid()
                     
                     case "GD": #the event taken is in grid
-                        logging.info(f"{operation_code} GD order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        logging.info(f"{symbol}_{position_side} GD order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() #read current position
-                        grid.clean_order('UL') # clean unload order if there is an unload order opened
+                        clean_order(symbol, position_side, 'UL') # clean unload order if there is an unload order opened
                         grid.post_ul_order()
                     
                         # if the until last line is taken, then the SL will be replaced by hedge order
                         if (coi_entry_number == (len(grid.data_grid['grid_body']) - 1)) and grid.data_grid['hedge'] == True:
-                            grid.clean_order('SL') # clean stop loss order
+                            clean_order(symbol, position_side,'SL') # clean stop loss order
                             grid.post_hedge_order()
                         
                         grid.write_data_grid() # saving all configuration to json
 
                     case "UL": #the event is unload
-                        logging.info(f"{operation_code} UL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        logging.info(f"{symbol}_{position_side} UL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                         grid.update_current_position() #read current position
                         grid.update_entry_line() # updating entry line from current_line values
-                        grid.clean_order('GD') # clean grid orders
-                        grid.clean_order('TP') # clean take profit orders
-                        grid.clean_order('SL') # clean stop loss order
-                        grid.clean_order('HD') # clean hedge order
+                        clean_open_orders(symbol, position_side) # clean all order for the position side
+                        clean_order(symbol,position_side, 'HD') # clean hedge order if there is a hedge order
                         grid.generate_grid() # generate new grid points
                         grid.post_sl_order() # post stop loss order
                         grid.post_grid_order() # generate new grid and post it, taking entry price as entry and post it
@@ -97,27 +87,25 @@ def on_message(ws, message):
                         grid.write_data_grid() # saving all configuration to json
                     
                     case "SL": #the event is stop loss
-                        logging.info(f"{operation_code} SL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        logging.info(f"{symbol}_{position_side} SL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                         # close all open orders from list grid
                     
                     case "TP": #the event is take profit
-                        logging.info(f"{operation_code} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        logging.info(f"{symbol}_{position_side} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
                         # close all open orders from grid list
                     
                     case "HD": #the event is hedge
-                        logging.info(f"{operation_code} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
-                        grid.clean_order('UL') # clean unload order if there is an unload order opened
+                        logging.info(f"{symbol}_{position_side} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                        clean_open_orders(symbol, position_side) # clean all orders
                         grid.write_data_grid() # saving all configuration to json
-                        # close all open orders from grid list
-                        
+
                     case _:
-                        logging.warning(f"{operation_code} No matching operation for {symbol}")
+                        logging.warning(f"{symbol}_{position_side} No matching operation for {symbol}")
                         print(f"No kind operation")
             
             case "TLU_CARDIAC": # cardiac operation using re purchase and SL TP and unload lines
-                
-                grid = CardiacGrid(operation_code)                
-                grid.clean_open_orders() # delete all open orders
+                grid = CardiacGrid(f"{symbol}_{position_side}")
+                clean_open_orders(symbol, position_side) # clean all open orders
                 grid.update_current_position() # update current position to current_line
                 
                 if grid.data_grid['current_line']['active']:
@@ -133,7 +121,6 @@ def on_message(ws, message):
                         grid.post_unload_order()
             
                 grid.write_data_grid()
-
 
 
 def on_error(ws, error):

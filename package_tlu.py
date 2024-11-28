@@ -6,30 +6,7 @@ from binance.client import Client
 import math
 import logging
 import time
-
-# Reading json file, the json_file_path should include directory + file + .json extension
-def read_config_data(json_file_path):
-    try:
-        # Attempt to load file
-        if os.path.isfile(json_file_path):
-            with open(json_file_path, 'r') as file:
-                config_file = json.load(file)
-                logging.debug(f"Successfully loaded data_grid file: {json_file_path}")
-                return config_file
-        else:
-            logging.warning(f"data_grid file '{json_file_path}' not found")
-    except (FileNotFoundError, KeyError):
-        logging.exception("Error: Invalid config.json file or not found. Please check the file path and format.")
-        print(f"Error: Invalid {json_file_path} file or not found. Please check the file path and format.")
-        return 
-
-# Writting json data grid file
-def write_config_data(directory, file_name, data_grid):
-    os.makedirs(directory, exist_ok=True) # if directory doesn't exist, it will be created
-    xfile = f"{directory}/{file_name}" # file name should have extension to
-    with open(xfile, 'w') as file:
-        json.dump(data_grid, file, indent=4)  # Pretty-print JSON
-    return None
+from package_common import *
 
 
 # input data from console
@@ -45,7 +22,7 @@ def input_data(config_file):
     
     # INPUT symbol
     if config_file['symbol']['input']:   
-        config_file['symbol']['value'] = get_input("Symbol [BTC]: ", "BTC").upper() + "USDT"
+        config_file['symbol']['value'] = get_input("Symbol (BTC): ", "BTC").upper() + "USDT"
 
     # getting wallet current balance
     config_file['wallet']['usdt_balance'] = round(next((float(b['balance']) for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0), 2)
@@ -68,27 +45,27 @@ def input_data(config_file):
     # INPUT entry price
     if config_file['entry_price']['input']:
         tick_increment = int(abs(math.log10(config_file['tick_size'])))
-        config_file['entry_price']['value'] = round(get_input("Entry Price: ", 0.0, float), tick_increment)
+        config_file['entry_price']['value'] = round(get_input("Entry Price ($): ", 0.0, float), tick_increment)
 
     # INPUT side (default to LONG)
     if config_file['side']['input']:
-        config_file['side']['value'] = get_input("Side [LONG]: ", "LONG", str).upper()
+        config_file['side']['value'] = get_input("Side (LONG): ", "LONG", str).upper()
 
     # INPUT grid distance
     if config_file['grid_distance']['input']:
-        config_file['grid_distance']['value'] = get_input("Grid Distance [2%]: ", 2, float) / 100 # default valur for grid distance is 2%
+        config_file['grid_distance']['value'] = get_input("Grid Distance (2%): ", 2, float) / 100 # default valur for grid distance is 2%
 
     # INPUT token increment
     if config_file['quantity_increment']['input']:
-        config_file['quantity_increment']['value'] = get_input("Token Increment [40%]: ", 40, float) / 100 # default increment is 40%
+        config_file['quantity_increment']['value'] = get_input("Token Increment (40%): ", 40, float) / 100 # default increment is 40%
 
     # INPUT stop_loss_amount
     if config_file['stop_loss_amount']['input']:
-        config_file['stop_loss_amount']['value'] = get_input(f"Stop Loss Amount [{config_file['compound']['quantity']}$]: ", config_file['compound']['quantity'], float)
+        config_file['stop_loss_amount']['value'] = get_input(f"Stop Loss Amount ({config_file['compound']['quantity']}$): ", config_file['compound']['quantity'], float)
     
     # INPUT quantity
     if config_file['entry_quantity']['input']: # if entry quantity is enabled
-        entry_q = round(get_input(f"Entry Quantity [{config_file['compound']['quantity']}$]: ", config_file['compound']['quantity'], float), 2) # getting quantity in USDT
+        entry_q = round(get_input(f"Entry Quantity ({config_file['compound']['quantity']}$): ", config_file['compound']['quantity'], float), 2) # getting quantity in USDT
         config_file['entry_quantity']['value'] = round(entry_q / config_file['entry_price']['value'], config_file['quantity_precision']) #converting USDT entry to tokens
     
     # cleaning grid body    
@@ -125,30 +102,29 @@ def input_data(config_file):
         
     return operation_code
 
-# Define get_connection outside the class
-def get_connection():
-    try:
-        # Load credentials from JSON file
-        with open('../credentials.json', 'r') as file:
-            binance_credentials = json.load(file)
-            api_key = binance_credentials['api_key']
-            api_secret = binance_credentials['api_secret']
 
-        # Initialize the Binance client
-        client = Client(api_key, api_secret)
-        client.ping()  # Ensure connection
-        client.get_server_time() # getting server time from binance
-        client.timestamp_offset = client.get_server_time()['serverTime'] - int(time.time() * 1000) # Enable time synchronization
-        return client
-    
-    except FileNotFoundError:
-        logging.FileNotFoundError("Error: credentials.json file not found. Please check the file path.")
-    except KeyError:
-        logging.KeyError("Error: Invalid format in credentials.json. Missing 'api_key' or 'api_secret'.")
-    except Exception as e:
-        logging.exception(f"Binance connection error, check credentials or internet: {e}")
-    
-    return None  # Return None explicitly if the connection fails
+# get transaction type
+def get_transaction_type(message):
+    # for grid
+    if message['o']['ps'] == 'LONG' and message['o']['o'] == 'LIMIT' and message['o']['S'] == 'BUY':
+        return 'GD'
+
+    if message['o']['ps'] == 'SHORT' and message['o']['o'] == 'LIMIT' and message['o']['S'] == 'SELL':
+        return 'GD'
+
+    # for unload
+    if message['o']['ps'] == 'LONG' and message['o']['o'] == 'LIMIT' and message['o']['S'] == 'SELL':
+        return 'UL'
+
+    if message['o']['ps'] == 'SHORT' and message['o']['o'] == 'LIMIT' and message['o']['S'] == 'BUY':
+        return 'UL'
+
+    # for take profit
+    if message['o']['o'] == 'TAKE_PROFIT_MARKET':
+        return 'TP'
+
+    if message['o']['o'] == 'STOP_MARKET':
+        return 'SL'
 
 
 
@@ -383,31 +359,6 @@ class LUGrid:
 
         return None
 
-    
-    # clean entire grid
-    def clean_order(self, code):
-        
-        logging.debug(f"{self.operation_code} CLEANING {code.upper()} ORDERS...")
-        symbol = self.data_grid['symbol']['value']
-        open_orders = self.client.futures_get_open_orders(symbol=symbol) # getting all open orders
-
-        if not open_orders:
-            logging.info(f"{self.operation_code} No {code.upper()} orders to cancel.")
-            return
-        
-        # cleaning orders
-        for order in open_orders:
-            coid = order['clientOrderId'].split('_')
-            if code == coid[2] and self.operation_code == f"{coid[0]}_{coid[1]}":
-                try:
-                    response = self.client.futures_cancel_order(symbol=symbol, orderId=order['orderId']) # Cancelling order
-                
-                except Exception as e:
-                    logging.exception(f"{self.operation_code} Error cancelling order: {e} ")
-
-        # Clear grid_body after all cancellations
-        logging.info(f"{self.operation_code} All {code.upper()} orders cancelled and cleared.")
-
             
     # post a limit order for grid body
     def post_grid_order(self):
@@ -582,33 +533,7 @@ class LUGrid:
         except Exception as e:
             logging.exception(f"{self.operation_code} Error posting order: {e}")
 
-
-    def clean_open_orders(self):
-        
-        logging.debug(f"{self.operation_code} CLEAN ALL OPEN ORDERS...")
-        op_symbol = self.data_grid['symbol']['value']
-        
-        # getting all open orders
-        try:
-            open_orders = self.client.futures_get_open_orders(symbol=op_symbol)
-        
-        except Exception:
-            logging.exception("{self.operation_code} There is no open orders")
-            
-        for order in open_orders:
-            try:
-                # Cancel multiple orders at once
-                response = self.client.futures_cancel_order(symbol=op_symbol, orderId=order['orderId'])
-                logging.debug(f"{self.operation_code} Order to cancel: {order}")
-                logging.debug(f"{self.operation_code} Binance response to cancel: {response}")
-                logging.info(f"{self.operation_code} ⛔️ {response['type']} | Price: {response['price']} | Quantity: {response['origQty']}")
-            except Exception as e:
-                logging.exception(f"{self.operation_code} Error cancelling orders: {e} ")
-
-        # Clear grid_body after all cancellations
-        logging.info(f"{self.operation_code} All grid orders cancelled and cleared.")
-    
-
+    # update current position into current line
     def update_current_position(self):
         
         logging.debug(f"{self.operation_code} UPDATING CURRENT POSITION FROM BINANCE...")
@@ -631,24 +556,4 @@ class LUGrid:
 
         except Exception as e:
             logging.exception(f"{self.operation_code} update_current_position | Error fetching position information for {self.data_grid['symbol']}: {e}")
-
-            
-    def print_grid(self):
-        try:
-            # Print entry line
-            print(f"{self.data_grid['entry_line']['entry']} | {self.data_grid['entry_line']['price']} | {self.data_grid['entry_line']['quantity']} | {self.data_grid['entry_line']['cost']}")
-
-            # Print grid body
-            for line in self.data_grid['grid_body']:
-                print(f"{line['entry']} | {line['price']} | {line['quantity']} | {line['cost']}")
-
-            # Print stop loss line
-            print(f"{self.data_grid['stop_loss_line']['entry']} ({self.data_grid['stop_loss_line']['distance'] * 100:.2f}%) | "
-              f"{self.data_grid['stop_loss_line']['price']} | {self.data_grid['stop_loss_line']['quantity']} | "
-              f"{self.data_grid['stop_loss_line']['cost']}")
-    
-        except KeyError as e:
-            print(f"Missing key in data: {e}")
-        except Exception as e:
-            print(f"Error while printing grid: {e}")
 
