@@ -29,10 +29,10 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 # INPUT symbol 
-symbol = input("Symbol [BTC]: ").upper() + "USDT"
+symbol = input("Symbol (BTC): ").upper() + "USDT"
 
 # INPUT side (default to LONG)
-side = input("Side [LONG|SHORT]: ").upper() or 'LONG'
+side = input("Side (LONG|SHORT): ").upper() or 'LONG'
 
 operation_code = f"{symbol}_{side}"
 

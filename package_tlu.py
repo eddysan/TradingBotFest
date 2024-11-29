@@ -24,6 +24,27 @@ def input_data(config_file):
     if config_file['symbol']['input']:   
         config_file['symbol']['value'] = get_input("Symbol (BTC): ", "BTC").upper() + "USDT"
 
+    # INPUT side (default to LONG)
+    if config_file['side']['input']:
+        config_file['side']['value'] = get_input("Side (LONG): ", "LONG", str).upper()
+
+    # Fetch futures position information
+    response = client.futures_position_information(symbol=config_file['symbol']['value'])
+
+    # Loop through the list to find the relevant position based on 'positionSide'
+    for position_info in response:
+        if position_info['positionSide'] == config_file['side']['value'] and float(position_info['positionAmt']) != 0:  # Cheking if there is a position
+            logging.info(f"{config_file['symbol']['value']}_{config_file['side']['value']} Taking current position as entry values. \n "
+                         f"Entry Price: {position_info['entryPrice']} \n "
+                         f"Entry Quantity: {position_info['positionAmt']})")
+            config_file['entry_price']['value'] = position_info['entryPrice']
+            config_file['entry_quantity']['value'] = position_info['positionAmt']
+            #diabling input
+            config_file['entry_price']['input'] = False
+            config_file['entry_quantity']['input'] = False
+            break  # Exit after finding the first non-empty position
+
+
     # getting wallet current balance
     config_file['wallet']['usdt_balance'] = round(next((float(b['balance']) for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0), 2)
     config_file['compound']['quantity'] = round(float(config_file['wallet']['usdt_balance']) * config_file['compound']['risk'], 2)
@@ -46,10 +67,6 @@ def input_data(config_file):
     if config_file['entry_price']['input']:
         tick_increment = int(abs(math.log10(config_file['tick_size'])))
         config_file['entry_price']['value'] = round(get_input("Entry Price ($): ", 0.0, float), tick_increment)
-
-    # INPUT side (default to LONG)
-    if config_file['side']['input']:
-        config_file['side']['value'] = get_input("Side (LONG): ", "LONG", str).upper()
 
     # INPUT grid distance
     if config_file['grid_distance']['input']:
@@ -97,7 +114,7 @@ def input_data(config_file):
     # Generate operation code
     operation_code = f"{config_file['symbol']['value']}_{config_file['side']['value']}"
 
-    # writting to data grid
+    # saving to data grid
     write_config_data('ops', operation_code + ".json", config_file)
         
     return operation_code
