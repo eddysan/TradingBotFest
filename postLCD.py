@@ -44,7 +44,10 @@ operation_code = input_data(config_file)
 
 grid = LUGrid(operation_code)
 grid.generate_grid()
-grid.post_entry_order()
+
+if grid.data_grid['entry_line']['enabled']:
+    grid.post_entry_order()
+
 grid.post_grid_order()
 grid.post_sl_order()
 grid.write_data_grid()

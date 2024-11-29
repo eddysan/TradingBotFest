@@ -42,6 +42,7 @@ def input_data(config_file):
             #diabling input
             config_file['entry_price']['input'] = False
             config_file['entry_quantity']['input'] = False
+            config_file['entry_line']['enabled'] = False
             break  # Exit after finding the first non-empty position
 
 
