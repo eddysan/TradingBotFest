@@ -37,8 +37,8 @@ def input_data(config_file):
             logging.info(f"{config_file['symbol']['value']}_{config_file['side']['value']} Taking current position as entry values. \n "
                          f"Entry Price: {position_info['entryPrice']} \n "
                          f"Entry Quantity: {position_info['positionAmt']})")
-            config_file['entry_price']['value'] = position_info['entryPrice']
-            config_file['entry_quantity']['value'] = position_info['positionAmt']
+            config_file['entry_price']['value'] = float(position_info['entryPrice'])
+            config_file['entry_quantity']['value'] = float(position_info['positionAmt'])
             #diabling input
             config_file['entry_price']['input'] = False
             config_file['entry_quantity']['input'] = False
