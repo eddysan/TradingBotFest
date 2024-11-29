@@ -34,7 +34,7 @@ def input_data(config_file):
     # Loop through the list to find the relevant position based on 'positionSide'
     for position_info in response:
         if position_info['positionSide'] == config_file['side']['value'] and float(position_info['positionAmt']) != 0:  # Cheking if there is a position
-            logging.info(f"{config_file['symbol']['value']}_{config_file['side']['value']} Taking current position as entry values. \n "
+            print(f"{config_file['symbol']['value']}_{config_file['side']['value']} Taking current position as entry values. \n "
                          f"Entry Price: {position_info['entryPrice']} \n "
                          f"Entry Quantity: {position_info['positionAmt']})")
             config_file['entry_price']['value'] = float(position_info['entryPrice'])
