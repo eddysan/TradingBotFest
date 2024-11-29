@@ -5,7 +5,7 @@ import sys
 import json
 from binance.client import Client
 import time
-from package_cardiac import *
+from package_recoveryzone import *
 
 # Activating the virtual environment
 venv_path = os.path.join(os.path.dirname(__file__), '.venv/bin/activate_this.py')
@@ -37,7 +37,7 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 # Reading default config file
-config_file = read_config_data("config/cardiac.config")
+config_file = read_config_data("config/recovery_zone.config")
 
 operation_code = input_data(config_file)
 
