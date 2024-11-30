@@ -60,3 +60,20 @@ def write_config_data(directory, file_name, data_grid):
 def get_strategy(operation):
     operation_file = read_config_data(f"ops/{operation}.json")
     return operation_file['strategy']  # reading strategy type
+
+# round price to tick size
+def round_to_tick(price, tick_size):
+    tick_increment = int(abs(math.log10(tick_size)))
+    return round(price, tick_increment)
+
+# getting distance between two points as percentage
+def get_distance(first_point, second_point, side):
+    if side == 'LONG':
+        distance = round( (float(second_point) - float(first_point)) / float(first_point), 2)
+        return distance
+    if side == 'SHORT':
+        distance = round( (float(first_point) - float(second_point)) / float(first_point), 2)
+        return distance
+
+
+

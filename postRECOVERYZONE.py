@@ -6,6 +6,7 @@ import json
 from binance.client import Client
 import time
 from package_recoveryzone import *
+from package_common import *
 
 # Activating the virtual environment
 venv_path = os.path.join(os.path.dirname(__file__), '.venv/bin/activate_this.py')
@@ -34,10 +35,11 @@ if logger.hasHandlers(): # Clear any previously added handlers (if needed)
     logger.handlers.clear()
 
 logger.addHandler(console_handler)
+
 logger.addHandler(file_handler)
 
 # Reading default config file
-config_file = read_config_data("config/recovery_zone.config")
+config_file = read_config_data("config/recoveryzone.config")
 
 operation_code = input_data(config_file)
 
