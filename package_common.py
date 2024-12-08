@@ -69,10 +69,10 @@ def round_to_tick(price, tick_size):
 # getting distance between two points as percentage
 def get_distance(first_point, second_point, side):
     if side == 'LONG':
-        distance = round( (float(second_point) - float(first_point)) / float(first_point), 2)
+        distance = round( ((float(second_point) - float(first_point)) / float(first_point)) * 100, 2)
         return distance
     if side == 'SHORT':
-        distance = round( (float(first_point) - float(second_point)) / float(first_point), 2)
+        distance = round( ((float(first_point) - float(second_point)) / float(first_point)) * 100, 2)
         return distance
 
 

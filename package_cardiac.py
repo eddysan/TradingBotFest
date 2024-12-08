@@ -92,11 +92,9 @@ class CardiacGrid:
         # new connection to binance
         self.client = get_connection()
         
-        
-    @property
-    def symbol(self):
-        return self.data_grid['symbol']['value']
-            
+
+
+
     # Write data grid to operations folder
     def write_data_grid(self):
         conf_file = f"{self.operation_code}.json"
@@ -222,7 +220,6 @@ class CardiacGrid:
 
     # post entry order
     def post_entry_order(self):
-
         logging.debug(f"{self.operation_code} POSTING ENTRY ORDER TO BINANCE...")
 
         if self.data_grid['entry_line']['price'] != 0 and self.data_grid['entry_line']['quantity'] != 0:
@@ -374,10 +371,4 @@ class CardiacGrid:
         else:
             logging.debug(f"{self.operation_code} Can't post unload order because of data: {self.data_grid['unload_line']}")
 
-
-    # Write data grid to operations folder
-    def write_data_grid(self):
-        logging.debug(f"{self.operation_code} WRITTING DATA_GRID FILE...")
-        
-        write_config_data('ops', f"{self.operation_code}.json", self.data_grid)
 

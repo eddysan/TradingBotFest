@@ -1,12 +1,5 @@
-#!/usr/bin/env python3
-
-import os
-import sys
-import json
-from binance.client import Client
-import time
 from package_recoveryzone import *
-from package_common import *
+#from package_common import *
 
 # Activating the virtual environment
 venv_path = os.path.join(os.path.dirname(__file__), '.venv/bin/activate_this.py')
@@ -38,10 +31,9 @@ logger.addHandler(console_handler)
 
 logger.addHandler(file_handler)
 
-# Reading default config file
-config_file = read_config_data("config/recoveryzone.config")
+symbol = input_data()
 
-operation_code = input_data(config_file)
-
+rz = RecoveryZone(symbol)
+rz.post_orders()
 
 

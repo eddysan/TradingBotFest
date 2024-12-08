@@ -8,6 +8,7 @@ from package_common import *
 from package_theloadunload import *
 from package_cardiac import *
 from package_clean import *
+from package_recoveryzone import *
 
 # logging config
 os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
@@ -38,72 +39,19 @@ ws = None  # Global variable for WebSocket connection
 client = get_connection()
 
 def on_message(ws, message):
-    message = json.loads(message) #message received
+    logging.debug(f"MESSAGE RECEIVED -->: {message}")
+    message = json.loads(message) #message received converted to json
     symbol = message['o']['s']  # Symbol lie XRPUSDT
-    position_side = message['o']['ps']  # position side like LONG or SHORT
-    logging.debug(f"{symbol}_{position_side} MESSAGE RECEIVED: {message}")
+    strategy = get_strategy(symbol)  # reading strategy type
 
-    if message.get('e') == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':
-        strategy = get_strategy(f"{symbol}_{position_side}") # reading strategy type
+    match strategy:
+        case "THE_LOAD_UNLOAD_GRID": # The Load UnLoad strategy, static grid
+            if message['e'] == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED': #just attend filled messaged
+                grid = LUGrid(symbol)
+                grid.attend_message(message)
 
-        match strategy:
-            case "TLU_GRID": # Load and UnLoad strategy, static grid
-                transaction_type = get_transaction_type(message)
-                client_order_id = str(message['o']['c']).split('_')  # client order id
-                coi_entry_number = int(client_order_id[3]) # number of entry like 1, 2, 3 in grid
-
-                grid = LUGrid(f"{symbol}_{position_side}")
-                
-                match transaction_type:
-                    case "IN": #the event is entry
-                        logging.info(f"{symbol}_{position_side} IN order: price: {message['o']['p']}, quantity: {message['o']['q']}")
-                        grid.update_current_position() # read position information at first the position will be same as entry_line
-                        grid.post_tp_order() # when an entry line is taken, then take profit will be posted
-                        grid.write_data_grid()
-                    
-                    case "GD": #the event taken is in grid
-                        logging.info(f"{symbol}_{position_side} GD order: price: {message['o']['p']}, quantity: {message['o']['q']}")
-                        grid.update_current_position() #read current position
-                        clean_order(symbol, position_side, 'UL') # clean unload order if there is an unload order opened
-                        grid.post_ul_order()
-                    
-                        # if the until last line is taken, then the SL will be replaced by hedge order
-                        if (coi_entry_number == (len(grid.data_grid['grid_body']) - 1)) and grid.data_grid['hedge'] == True:
-                            clean_order(symbol, position_side,'SL') # clean stop loss order
-                            grid.post_hedge_order()
-                        
-                        grid.write_data_grid() # saving all configuration to json
-
-                    case "UL": #the event is unload
-                        logging.info(f"{symbol}_{position_side} UL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
-                        grid.update_current_position() #read current position
-                        grid.update_entry_line() # updating entry line from current_line values
-                        clean_open_orders(symbol, position_side) # clean all order for the position side
-                        clean_order(symbol,position_side, 'HD') # clean hedge order if there is a hedge order
-                        grid.generate_grid() # generate new grid points
-                        grid.post_sl_order() # post stop loss order
-                        grid.post_grid_order() # generate new grid and post it, taking entry price as entry and post it
-                        grid.post_tp_order() # post take profit order
-                        grid.write_data_grid() # saving all configuration to json
-                    
-                    case "SL": #the event is stop loss
-                        logging.info(f"{symbol}_{position_side} SL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
-                        # close all open orders from list grid
-                    
-                    case "TP": #the event is take profit
-                        logging.info(f"{symbol}_{position_side} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
-                        # close all open orders from grid list
-                    
-                    case "HD": #the event is hedge
-                        logging.info(f"{symbol}_{position_side} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
-                        clean_open_orders(symbol, position_side) # clean all orders
-                        grid.write_data_grid() # saving all configuration to json
-
-                    case _:
-                        logging.warning(f"{symbol}_{position_side} No matching operation for {symbol}")
-                        print(f"No kind operation")
-            
-            case "TLU_CARDIAC": # cardiac operation using re purchase and SL TP and unload lines
+        case "TLU_CARDIAC": # cardiac operation using re purchase and SL TP and unload lines
+            if message['e'] == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':  # just attend filled messaged
                 grid = CardiacGrid(f"{symbol}_{position_side}")
                 clean_open_orders(symbol, position_side) # clean all open orders
                 grid.update_current_position() # update current position to current_line
@@ -121,6 +69,11 @@ def on_message(ws, message):
                         grid.post_unload_order()
             
                 grid.write_data_grid()
+
+        case "RECOVERY_ZONE": # in case of recovery zone operation
+            rz = RecoveryZone(symbol)
+            rz.operate(message)
+
 
 
 def on_error(ws, error):
