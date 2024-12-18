@@ -3,12 +3,13 @@ from binance.client import Client
 from binance.streams import BinanceSocketManager
 from websocket import WebSocketApp
 import time
+import concurrent.futures
 import logging
 from package_common import *
 from package_theloadunload import *
 from package_cardiac import *
-from package_clean import *
 from package_recoveryzone import *
+from package_connection import client
 
 # logging config
 os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
@@ -16,65 +17,48 @@ os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
 # Create a logger object
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)  # Overall logger level
-
 console_handler = logging.StreamHandler()  # Logs to console
 console_handler.setLevel(logging.INFO)  # Only log INFO and above to console
-
 file_handler = logging.FileHandler(f"logs/positions.log")  # Logs to file
 file_handler.setLevel(logging.DEBUG)  # Log DEBUG and above to file
-
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s') # formatter
 console_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
-
 if logger.hasHandlers(): # Clear any previously added handlers (if needed)
     logger.handlers.clear()
-
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
-
 ws = None  # Global variable for WebSocket connection
 
-client = get_connection()
+# Create a ThreadPoolExecutor for handling messages in parallel
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)  # Adjust max_workers based on your system
+def process_message(message):
+    try:
+        if message['e'] != 'ORDER_TRADE_UPDATE': # Fast exit if not the relevant event type
+            return
+        symbol = message['o']['s']  # Symbol like XRPUSDT
+        strategy = get_strategy(symbol) # Determine strategy and execute relevant logic
+        if strategy == "THE_LOAD_UNLOAD_GRID":
+            LUGrid(symbol).attend_message(message)
+        elif strategy == "CARDIAC":
+            CardiacGrid(symbol).attend_message(message)
+        elif strategy == "RECOVERY_ZONE":
+            RecoveryZone(symbol).attend_message(message)
+
+    except KeyError as ke:
+        logging.error(f"Missing key {ke} in message: {message}") # Handle missing keys gracefully
+    except Exception as e:
+        logging.exception(f"Error processing message: {e}") # General exception logging for unexpected errors
 
 def on_message(ws, message):
-    logging.debug(f"MESSAGE RECEIVED -->: {message}")
-    message = json.loads(message) #message received converted to json
-    symbol = message['o']['s']  # Symbol lie XRPUSDT
-    strategy = get_strategy(symbol)  # reading strategy type
+    try:
+        logging.debug(f"MESSAGE RECEIVED -->: {message}")
+        message = json.loads(message)  # Convert message to JSON
+        executor.submit(process_message, message) # Submit the message to the executor for parallel processing
 
-    match strategy:
-        case "THE_LOAD_UNLOAD_GRID": # The Load UnLoad strategy, static grid
-            if message['e'] == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED': #just attend filled messaged
-                grid = LUGrid(symbol)
-                grid.attend_message(message)
-
-        case "TLU_CARDIAC": # cardiac operation using re purchase and SL TP and unload lines
-            if message['e'] == 'ORDER_TRADE_UPDATE' and message['o']['X'] == 'FILLED':  # just attend filled messaged
-                grid = CardiacGrid(f"{symbol}_{position_side}")
-                clean_open_orders(symbol, position_side) # clean all open orders
-                grid.update_current_position() # update current position to current_line
-                
-                if grid.data_grid['current_line']['active']:
-                    grid.generate_stop_loss()
-                    grid.post_stop_loss_order()
-                
-                    if grid.data_grid['take_profit_line']['enabled']:
-                        grid.generate_take_profit()
-                        grid.post_take_profit_order()
-                
-                    if grid.data_grid['unload_line']['enabled']:
-                        grid.generate_unload()
-                        grid.post_unload_order()
-            
-                grid.write_data_grid()
-
-        case "RECOVERY_ZONE": # in case of recovery zone operation
-            rz = RecoveryZone(symbol)
-            rz.operate(message)
-
-
+    except Exception as e:
+        logging.exception(f"Error in on_message: {e}")
 
 def on_error(ws, error):
     logging.error(f"Error occurred: {error}")

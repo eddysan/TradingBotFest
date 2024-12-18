@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-
-import os
-import sys
-import json
-from binance.client import Client
-import time
-import logging
-
-from package_clean import *
-from package_theloadunload import *
+from package_common import *
 
 # Activating the virtual environment
 venv_path = os.path.join(os.path.dirname(__file__), '.venv/bin/activate_this.py')
@@ -46,8 +37,8 @@ symbol = input("Symbol (BTC): ").upper() + "USDT"
 position_side = input("Side to clean (LONG|SHORT|ALL): ").upper() or 'ALL'
 
 if position_side.upper() == 'ALL':
-    clean_open_orders(symbol, 'LONG')
-    clean_open_orders(symbol, 'SHORT')
+    clean_all_open_orders(symbol)
 else:
     clean_open_orders(symbol, position_side)
+
 

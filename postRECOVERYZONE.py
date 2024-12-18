@@ -17,7 +17,7 @@ logger.setLevel(logging.DEBUG)  # Overall logger level
 console_handler = logging.StreamHandler()  # Logs to console
 console_handler.setLevel(logging.INFO)  # Only log INFO and above to console
 
-file_handler = logging.FileHandler(f"logs/open_orders.log")  # Logs to file
+file_handler = logging.FileHandler(f"logs/positions.log")  # Logs to file
 file_handler.setLevel(logging.DEBUG)  # Log DEBUG and above to file
 
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s') # formatter
@@ -32,7 +32,6 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 symbol = input_data()
-
 rz = RecoveryZone(symbol)
 rz.post_orders()
 

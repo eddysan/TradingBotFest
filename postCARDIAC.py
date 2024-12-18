@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-
-import os
-import sys
-import json
-from binance.client import Client
-import time
 from package_cardiac import *
 
 # Activating the virtual environment
@@ -23,7 +17,7 @@ logger.setLevel(logging.DEBUG)  # Overall logger level
 console_handler = logging.StreamHandler()  # Logs to console
 console_handler.setLevel(logging.INFO)  # Only log INFO and above to console
 
-file_handler = logging.FileHandler(f"logs/open_orders.log")  # Logs to file
+file_handler = logging.FileHandler(f"logs/positions.log")  # Logs to file
 file_handler.setLevel(logging.DEBUG)  # Log DEBUG and above to file
 
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s') # formatter
@@ -36,15 +30,9 @@ if logger.hasHandlers(): # Clear any previously added handlers (if needed)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
-# Reading default config file
-config_file = read_config_data("config/cardiac.config")
+symbol = input_data() #getting data from terminal
 
-operation_code = input_data(config_file) #getting data from terminal
-
-grid = CardiacGrid(operation_code)
-
-grid.generate_entry()
-grid.post_entry_order()
-
-grid.write_data_grid()
+if symbol is not None:
+    car = CardiacGrid(symbol)
+    car.post_order()
 
