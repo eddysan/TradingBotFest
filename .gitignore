@@ -1,7 +1,7 @@
 .DS_Store
 .venv/
-ops/
-logs/
+ops/*
+logs/*
 test/
 __pycache__/
 test.py

@@ -3,8 +3,11 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/ops" />
+      <excludeFolder url="file://$MODULE_DIR$/test" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.12 (lubinance_dev)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.12 (TradingBotFest_dev)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
