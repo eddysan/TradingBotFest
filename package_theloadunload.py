@@ -24,8 +24,13 @@ def input_data():
                 f"Position side: {position_info['positionSide']} \n"
                 f"Price: {position_info['entryPrice']} \n"
                 f"Quantity: {abs(position_info['positionAmt'])}")
-            config[input_side]['entry_line']['price'] = float(position_info['entryPrice'])
-            config[input_side]['entry_line']['quantity'] = abs(float(position_info['positionAmt']))
+            config[input_side]['current_line']['price'] = float(position_info['entryPrice'])
+            config[input_side]['current_line']['quantity'] = abs(float(position_info['positionAmt']))
+            config[input_side]['current_line']['cost'] = round(config[input_side]['current_line']['price'] * config[input_side]['current_line']['quantity'], 2)
+            config[input_side]['current_line']['status'] = 'FILLED'
+            config[input_side]['entry_line']['price'] = config[input_side]['current_line']['price']
+            config[input_side]['entry_line']['quantity'] = config[input_side]['current_line']['quantity']
+            config[input_side]['entry_line']['cost'] = config[input_side]['current_line']['cost']
             config[input_side]['entry_line']['status'] = 'FILLED'
 
     # getting wallet current balance
@@ -55,6 +60,9 @@ def input_data():
         entry_q = input(f"Entry Quantity ({config[input_side]['risk']['risk_amount']}$): ") or config[input_side]['risk']['risk_amount']  # getting quantity in USDT
         config[input_side]['entry_line']['quantity'] = round(float(entry_q) / config[input_side]['entry_line']['price'], config['quantity_precision'])  # converting USDT entry to tokens
         config[input_side]['entry_line']['status'] = 'NEW'
+        config[input_side]['current_line']['price'] = config[input_side]['entry_line']['price']
+        config[input_side]['current_line']['quantity'] = config[input_side]['entry_line']['quantity']
+        config[input_side]['current_line']['cost'] = round(config[input_side]['entry_line']['price'] * config[input_side]['entry_line']['quantity'], 2)
 
     # INPUT grid distance
     config[input_side]['risk']['grid_distance'] = float(input("Grid Distance (2%): ") or 2) # default valur for grid distance is 2%
@@ -141,7 +149,6 @@ class LUGrid:
 
                 clean_open_orders(self.symbol, self.data_grid[self.pos_side]['entry_line']['position_side'])  # clean all order for the position side
                 self.update_current_position()  # read current position
-                self.update_entry_line()  # updating entry line from current_line values
                 self.generate_grid()  # generate new grid points
                 post_stop_loss_order(self.symbol, self.data_grid[self.pos_side]['stop_loss_line'])
                 post_grid_order(self.symbol, self.data_grid[self.pos_side]['body_line'])
@@ -150,7 +157,7 @@ class LUGrid:
                     self.generate_take_profit()
                     post_take_profit_order(self.symbol, self.data_grid[self.pos_side]['take_profit_line'])
 
-                write_config_data('ops', f"{self.symbol}json", self.data_grid)
+                write_config_data('ops', f"{self.symbol}.json", self.data_grid)
 
             case "STOP_LOSS":  # the event is stop loss
                 logging.info(f"{self.symbol}_{self.pos_side} SL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
@@ -193,31 +200,26 @@ class LUGrid:
     def generate_grid(self):
         logging.debug(f"{self.symbol} GENERATING DATA_GRID LINES...")
         self.data_grid[self.pos_side]['body_line'] = [] # clean bd line first
-        # current line is the pivot that store que current price in operation, this will change if the grid has chaged
-        self.data_grid[self.pos_side]['current_line']['price'] = self.data_grid[self.pos_side]['entry_line']['price']
-        self.data_grid[self.pos_side]['current_line']['quantity'] = self.data_grid[self.pos_side]['entry_line']['quantity']
-        self.data_grid[self.pos_side]['current_line']['position_side'] = self.data_grid[self.pos_side]['entry_line']['position_side']
+
+        current_price = self.data_grid[self.pos_side]['current_line']["price"]
+        current_quantity = self.data_grid[self.pos_side]['current_line']["quantity"]
         
-        self.data_grid['body_line'] = [] #cleaning grid body before operations
-        current_price = self.data_grid[self.pos_side]['entry_line']["price"]
-        current_quantity = self.data_grid[self.pos_side]['entry_line']["quantity"]
-        
-        self.data_grid[self.pos_side]['average_line']['price'] = self.data_grid[self.pos_side]['entry_line']["price"]
-        self.data_grid[self.pos_side]['average_line']['quantity'] = self.data_grid[self.pos_side]['entry_line']["quantity"]
+        self.data_grid[self.pos_side]['average_line']['price'] = self.data_grid[self.pos_side]['current_line']["price"]
+        self.data_grid[self.pos_side]['average_line']['quantity'] = self.data_grid[self.pos_side]['current_line']["quantity"]
 
         # set stop loss taking the first point, entry line
-        self.data_grid[self.pos_side]['average_line']['sl_distance'] = (self.data_grid[self.pos_side]['risk']['stop_loss_amount'] * 100) / (self.data_grid[self.pos_side]['average_line']['price'] *  self.data_grid[self.pos_side]['average_line']['quantity'])
+        self.data_grid[self.pos_side]['average_line']['sl_distance'] = (self.data_grid[self.pos_side]['risk']['stop_loss_amount'] * 100) / (self.data_grid[self.pos_side]['average_line']['price'] * self.data_grid[self.pos_side]['average_line']['quantity'])
         
         if self.pos_side == 'LONG':
             self.data_grid[self.pos_side]['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid[self.pos_side]['average_line']['price'] - (self.data_grid[self.pos_side]['average_line']['price'] * self.data_grid[self.pos_side]['average_line']['sl_distance'] / 100) )
-            self.data_grid[self.pos_side]['stop_loss_line']['distance'] = round((self.data_grid[self.pos_side]['entry_line']['price'] - self.data_grid[self.pos_side]['stop_loss_line']['price']) / self.data_grid[self.pos_side]['entry_line']['price'],4)
+            self.data_grid[self.pos_side]['stop_loss_line']['distance'] = round((self.data_grid[self.pos_side]['current_line']['price'] - self.data_grid[self.pos_side]['stop_loss_line']['price']) / self.data_grid[self.pos_side]['current_line']['price'],4)
             
         if self.pos_side == 'SHORT':
-                self.data_grid[self.pos_side]['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid[self.pos_side]['average_line']['price'] + (self.data_grid[self.pos_side]['average_line']['price'] * self.data_grid[self.pos_side]['average_line']['sl_distance'] / 100) )
-                self.data_grid[self.pos_side]['stop_loss_line']['distance'] = round((self.data_grid[self.pos_side]['stop_loss_line']['price'] - self.data_grid[self.pos_side]['entry_line']['price']) / self.data_grid[self.pos_side]['entry_line']['price'],4)
+                self.data_grid[self.pos_side]['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid[self.pos_side]['average_line']['price'] + (self.data_grid[self.pos_side]['average_line']['price'] * self.data_grid[self.pos_side]['average_line']['sl_distance'] / 100))
+                self.data_grid[self.pos_side]['stop_loss_line']['distance'] = round((self.data_grid[self.pos_side]['stop_loss_line']['price'] - self.data_grid[self.pos_side]['current_line']['price']) / self.data_grid[self.pos_side]['current_line']['price'],4)
 
-        self.data_grid[self.pos_side]['stop_loss_line']['quantity'] = self.data_grid[self.pos_side]['entry_line']['quantity']
-        self.data_grid[self.pos_side]['stop_loss_line']['cost'] = self.data_grid[self.pos_side]['entry_line']['cost']
+        self.data_grid[self.pos_side]['stop_loss_line']['quantity'] = self.data_grid[self.pos_side]['current_line']['quantity']
+        self.data_grid[self.pos_side]['stop_loss_line']['cost'] = self.data_grid[self.pos_side]['current_line']['cost']
 
         while True:
             # increment as grid distance the price and quantity
@@ -246,8 +248,7 @@ class LUGrid:
                                    "type": "LIMIT",
                                    "cost" : round(new_price * new_quantity, 2),
                                    })
-            
-            
+
             # calculate the average price and accumulated quantity if the position is taken
             self.data_grid[self.pos_side]['average_line']['price'] = self.round_to_tick_size( ((self.data_grid[self.pos_side]['average_line']['price'] * self.data_grid[self.pos_side]['average_line']['quantity']) + (new_price * new_quantity)) / (self.data_grid[self.pos_side]['average_line']['quantity'] + new_quantity))
             self.data_grid[self.pos_side]['average_line']['quantity'] = round(self.data_grid[self.pos_side]['average_line']['quantity'] + new_quantity, self.data_grid['quantity_precision'])
@@ -256,11 +257,11 @@ class LUGrid:
             
             if self.pos_side == 'LONG':
                 self.data_grid[self.pos_side]['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid[self.pos_side]['average_line']['price'] - (self.data_grid[self.pos_side]['average_line']['price'] * self.data_grid[self.pos_side]['average_line']['sl_distance'] / 100) )
-                self.data_grid[self.pos_side]['stop_loss_line']['distance'] = round((self.data_grid[self.pos_side]['entry_line']['price'] - self.data_grid[self.pos_side]['stop_loss_line']['price']) / self.data_grid[self.pos_side]['entry_line']['price'],4)
+                self.data_grid[self.pos_side]['stop_loss_line']['distance'] = round((self.data_grid[self.pos_side]['current_line']['price'] - self.data_grid[self.pos_side]['stop_loss_line']['price']) / self.data_grid[self.pos_side]['current_line']['price'],4)
             
             if self.pos_side == 'SHORT':
                 self.data_grid[self.pos_side]['stop_loss_line']['price'] = self.round_to_tick_size( self.data_grid[self.pos_side]['average_line']['price'] + (self.data_grid[self.pos_side]['average_line']['price'] * self.data_grid[self.pos_side]['average_line']['sl_distance'] / 100) )
-                self.data_grid[self.pos_side]['stop_loss_line']['distance'] = round((self.data_grid[self.pos_side]['stop_loss_line']['price'] - self.data_grid[self.pos_side]['entry_line']['price']) / self.data_grid[self.pos_side]['entry_line']['price'],4)
+                self.data_grid[self.pos_side]['stop_loss_line']['distance'] = round((self.data_grid[self.pos_side]['stop_loss_line']['price'] - self.data_grid[self.pos_side]['current_line']['price']) / self.data_grid[self.pos_side]['current_line']['price'],4)
 
             self.data_grid[self.pos_side]['stop_loss_line']['quantity'] = round(self.data_grid[self.pos_side]['stop_loss_line']['quantity'] + new_quantity, self.data_grid['quantity_precision'])
             self.data_grid[self.pos_side]['stop_loss_line']['cost'] = round(self.data_grid[self.pos_side]['stop_loss_line']['cost'] + (new_price * new_quantity), 2)
@@ -275,28 +276,15 @@ class LUGrid:
     # Calculate the take profit price based on the side
     def generate_take_profit(self):
         price_factor = 1 + (self.data_grid[self.pos_side]['take_profit_line']['distance']/100) if self.data_grid[self.pos_side]['entry_line']['position_side'] == 'LONG' else 1 - (self.data_grid[self.pos_side]['take_profit_line']['distance']/100)
-        self.data_grid[self.pos_side]['take_profit_line']['price'] = self.round_to_tick_size(self.data_grid[self.pos_side]['entry_line']['price'] * price_factor)
+        self.data_grid[self.pos_side]['take_profit_line']['price'] = self.round_to_tick_size(self.data_grid[self.pos_side]['current_line']['price'] * price_factor)
         logging.debug(f"{self.symbol} take_profit_line generated: {self.data_grid[self.pos_side]['take_profit_line']}")
-
-
-    # update entry line data taking current line as data, and the current position will be the new entry
-    def update_entry_line(self):
-        logging.debug(f"{self.symbol} UPDATING ENTRY_LINE FROM CURRENT_LINE...")
-    
-        # Update entry line with current line values
-        self.data_grid[self.pos_side]['entry_line']['price'] = self.data_grid[self.pos_side]['current_line']['price']
-        self.data_grid[self.pos_side]['entry_line']['quantity'] = self.data_grid[self.pos_side]['current_line']['quantity']
-        self.data_grid[self.pos_side]['entry_line']['cost'] = round(self.data_grid[self.pos_side]['entry_line']['price'] * self.data_grid[self.pos_side]['entry_line']['quantity'], 2)
-        
-        logging.debug(f"{self.symbol} current_line: {self.data_grid[self.pos_side]['current_line']}")
-        logging.debug(f"{self.symbol} entry_line updated: {self.data_grid[self.pos_side]['entry_line']}")
-        
-
 
     # generate unload order
     def generate_unload_order(self):
         # Calculate the unload price based on the side (LONG or SHORT)
-        price_factor = 1 + (self.data_grid[self.pos_side]['unload_line']['distance']/100) if self.data_grid[self.pos_side]['entry_line']['position_side'] == 'LONG' else 1 - (self.data_grid[self.pos_side]['unload_line']['distance']/100)
+        price_factor = 1 + (self.data_grid[self.pos_side]['unload_line']['distance']/100) \
+            if self.data_grid[self.pos_side]['current_line']['position_side'] == 'LONG' \
+            else 1 - (self.data_grid[self.pos_side]['unload_line']['distance']/100)
         self.data_grid[self.pos_side]['unload_line']['price'] = self.round_to_tick_size(self.data_grid[self.pos_side]['current_line']['price'] * price_factor)
 
         # Calculate unload quantity
@@ -305,7 +293,7 @@ class LUGrid:
             self.data_grid['quantity_precision']
         )
 
-        logging.debug(f"{self.symbol} unload_line generated: {self.data_grid[self.pos_side]['unload_line']}")
+        logging.debug(f"{self.symbol} UNLOAD generated: {self.data_grid[self.pos_side]['unload_line']}")
 
 
     # update current position into current line
@@ -317,6 +305,7 @@ class LUGrid:
                 if float(position_info['positionAmt']) != 0:  # Skip empty positions if the exchange is in hedge mode the response 2 current position, one is 0
                     self.data_grid[self.pos_side]['current_line']['price'] = float(position_info['entryPrice'])
                     self.data_grid[self.pos_side]['current_line']['quantity'] = abs(float(position_info['positionAmt']))
+                    self.data_grid[self.pos_side]['current_line']['cost'] = round(self.data_grid[self.pos_side]['current_line']['price'] * self.data_grid[self.pos_side]['current_line']['quantity'], 2)
                     self.data_grid[self.pos_side]['current_line']['position_side'] = position_info['positionSide']
                     logging.debug(f"{self.symbol} Current position from Binance: {position_info}")
                     break  # Exit after finding the first non-empty position
