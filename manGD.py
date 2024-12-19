@@ -3,7 +3,7 @@ from binance.client import Client
 import time
 import logging
 import os
-from package_tlu import *
+from package_theloadunload import *
 
 # logging config
 os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
