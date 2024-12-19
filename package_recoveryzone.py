@@ -83,15 +83,15 @@ class RecoveryZone:
     def post_orders(self):
         self.pos_side = self.data_grid['input_side']
         self.opos_side = 'SHORT' if self.pos_side == 'LONG' else 'LONG'
-
+        self.generate_points()
         if self.data_grid[self.pos_side]['entry_line']['status'] == 'FILLED': #there is a current position
-            self.post_hedge_order(self.data_grid[self.opos_side]['entry_line'])
-            self.post_take_profit_order(self.data_grid[self.pos_side]['take_profit_line'])
+            post_hedge_order(self.symbol, self.data_grid[self.opos_side]['entry_line'])
+            post_take_profit_order(self.symbol, self.data_grid[self.pos_side]['take_profit_line'])
 
         if self.data_grid[self.pos_side]['entry_line']['status'] != 'FILLED': #there is no position and all is new
-            self.post_entry_order(self.data_grid[self.pos_side]['entry_line'])
-            self.post_hedge_order(self.data_grid[self.opos_side]['entry_line'])
-            self.post_take_profit_order(self.data_grid[self.pos_side]['take_profit_line'])
+            post_limit_order(self.symbol, self.data_grid[self.pos_side]['entry_line'])
+            post_hedge_order(self.symbol, self.data_grid[self.opos_side]['entry_line'])
+            post_take_profit_order(self.symbol, self.data_grid[self.pos_side]['take_profit_line'])
 
         write_config_data('ops',f"{self.symbol}.json",self.data_grid)
 
@@ -110,7 +110,7 @@ class RecoveryZone:
             write_config_data('ops', f"{self.symbol}.json", self.data_grid)
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == False:  # hedge order taken and close position is false
-            clean_open_orders(self.symbol,'ALL')
+            clean_all_open_orders(self.symbol)
             self.update_current_position()  # updating position before operate
             if float(self.data_grid['LONG']['entry_line']['quantity']) != float(self.data_grid['SHORT']['entry_line']['quantity']): #if the amounts are equal
                 self.data_grid['risk']['min_risk'] = round(self.data_grid['risk']['min_risk'] * self.data_grid['risk']['product_factor'],2)  # increasing risk
@@ -118,110 +118,26 @@ class RecoveryZone:
                 if self.data_grid['risk']['min_risk'] < self.data_grid['risk']['max_risk']:  # if risk is more than max then both operations should be same
                     new_quantity = float((self.data_grid['risk']['product_factor'] * self.data_grid[self.pos_side]['entry_line']['quantity']) - self.data_grid[self.opos_side]['entry_line']['quantity'])
                     self.data_grid[self.opos_side]['entry_line']['quantity'] = round(new_quantity,self.data_grid['quantity_precision'])
-                    self.post_hedge_order(self.data_grid[self.opos_side]['entry_line'])
+                    post_hedge_order(self.symbol, self.data_grid[self.opos_side]['entry_line'])
 
                 else:
                     new_quantity = self.data_grid[self.pos_side]['entry_line']['quantity'] - self.data_grid[self.opos_side]['entry_line']['quantity']
                     self.data_grid[self.opos_side]['entry_line']['quantity'] = round(new_quantity, self.data_grid['quantity_precision'])  # same amount
-                    self.post_hedge_order(self.data_grid[self.opos_side]['entry_line'])
+                    post_hedge_order(self.symbol, self.data_grid[self.opos_side]['entry_line'])
 
                 self.generate_points()
-                self.post_take_profit_order(self.data_grid['LONG']['take_profit_line'])
-                self.post_stop_loss_order(self.data_grid['LONG']['stop_loss_line'])
-                self.post_take_profit_order(self.data_grid['SHORT']['take_profit_line'])
-                self.post_stop_loss_order(self.data_grid['SHORT']['stop_loss_line'])
+                post_take_profit_order(self.symbol, self.data_grid['LONG']['take_profit_line'])
+                post_stop_loss_order(self.symbol, self.data_grid['LONG']['stop_loss_line'])
+                post_take_profit_order(self.symbol, self.data_grid['SHORT']['take_profit_line'])
+                post_stop_loss_order(self.symbol, self.data_grid['SHORT']['stop_loss_line'])
 
             write_config_data('ops',f"{self.symbol}.json",self.data_grid)
 
         if message['o']['ot'] == 'TAKE_PROFIT_MARKET' and message['o']['cp'] == True:  # take profit and close position
-            clean_open_orders(self.symbol,'ALL')
+            clean_all_open_orders(self.symbol)
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == True:  # take profit and close position
-            clean_open_orders(self.symbol,'ALL')
-
-    # post limit order
-    def post_entry_order(self, data_grid):
-        try:
-            response = client.futures_create_order(
-                symbol=self.symbol,
-                side=data_grid['side'],
-                type='LIMIT',
-                timeInForce='GTC',
-                positionSide=data_grid['position_side'],
-                price=data_grid['price'],
-                quantity=data_grid['quantity']
-            )
-
-            # Log the placed order details
-            logging.debug(f"{self.symbol}_{data_grid['position_side']} Post LIMIT order: {response}")
-            logging.info(f"{self.symbol}_{data_grid['position_side']} - {data_grid['label']} | {data_grid['price']} | {data_grid['quantity']} ...POSTED")
-
-        except Exception as e:
-            logging.exception(f"{self.symbol}_{data_grid['position_side']} Error placing order: {e}")
-
-    # post hedge order
-    def post_hedge_order(self, data_grid):
-        try:
-            response = client.futures_create_order(
-                symbol=self.symbol,
-                side=data_grid['side'],
-                type='STOP_MARKET',
-                timeInForce='GTC',
-                positionSide=data_grid['position_side'],
-                stopPrice=data_grid['price'],
-                quantity=data_grid['quantity'],
-                closePosition=False
-            )
-
-            logging.debug(f"{self.symbol}_{data_grid['position_side']} Post hedge order: {response}")
-            logging.info(f"{self.symbol}_{data_grid['position_side']} - {data_grid['label']} | {data_grid['price']} | {data_grid['quantity']} ...POSTED")
-
-        except Exception as e:
-            logging.exception(f"{self.symbol}_{data_grid['position_side']} Error placing order: {e}")
-
-    def post_take_profit_order(self, data_line):
-        try:
-            response = client.futures_create_order(
-                symbol=self.symbol,
-                side=data_line['side'],
-                type='TAKE_PROFIT_MARKET',
-                timeInForce='GTC',
-                positionSide=data_line['position_side'],
-                stopPrice=data_line['price'],
-                closePosition=True
-            )
-
-            # Log the placed order details
-            logging.debug(f"{self.symbol}_{data_line['position_side']} Binance response: {response}")
-            logging.info(f"{self.symbol}_{data_line['position_side']} - {data_line['label']} | {data_line['price']} | {data_line['quantity']} ...POSTED")
-
-        except Exception as e:
-            logging.exception(f"{self.symbol}_{data_line['position_side']} Error placing TP order: {e}")
-
-    def post_stop_loss_order(self, data_line):
-        logging.debug(f"{self.symbol} POSTING STOP_LOSS ORDER...")
-        try:
-            # Post the stop loss order
-            response = client.futures_create_order(
-                symbol=self.symbol,
-                side=data_line['side'],  # SL for LONG is SELL and vice versa
-                positionSide=data_line['position_side'],
-                type='STOP_MARKET',
-                stopPrice=data_line['price'],
-                closePosition=True
-            )
-
-            # Log the placed order details
-            logging.debug(f"{self.symbol} stop_loss response: {response}")
-
-            # Log successful stop loss order
-            logging.info(f"{self.symbol} - {data_line['label']} ({round(data_line['distance'], 2)}%) | "
-                         f"{data_line['price']} | {data_line['quantity']} | "
-                         f"{data_line['cost']} ...POSTED")
-
-        except Exception as e:
-            logging.exception(f"{self.symbol} Error placing stop loss order: {e}")
-
+            clean_all_open_orders(self.symbol)
 
     def update_current_position(self):
         logging.debug(f"{self.symbol} UPDATING CURRENT POSITION...")
@@ -245,7 +161,7 @@ class RecoveryZone:
 
 
     def generate_points(self):
-        logging.debug(f"{self.symbol} GENERATING BREAK EVEN...")
+        logging.debug(f"{self.symbol} GENERATING POINTS...")
         # getting distances
         self.data_grid['LONG']['entry_line']['distance'] = get_distance(self.data_grid['LONG']['entry_line']['price'], self.data_grid['SHORT']['entry_line']['price'])
         self.data_grid['SHORT']['entry_line']['distance'] = get_distance(self.data_grid['SHORT']['entry_line']['price'], self.data_grid['LONG']['entry_line']['price'])
