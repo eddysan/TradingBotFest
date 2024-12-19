@@ -83,7 +83,7 @@ class RecoveryZone:
     def post_orders(self):
         self.pos_side = self.data_grid['input_side']
         self.opos_side = 'SHORT' if self.pos_side == 'LONG' else 'LONG'
-        self.generate_points()
+
         if self.data_grid[self.pos_side]['entry_line']['status'] == 'FILLED': #there is a current position
             post_hedge_order(self.symbol, self.data_grid[self.opos_side]['entry_line'])
             post_take_profit_order(self.symbol, self.data_grid[self.pos_side]['take_profit_line'])
