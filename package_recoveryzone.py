@@ -135,11 +135,9 @@ class RecoveryZone:
 
         if message['o']['ot'] == 'TAKE_PROFIT_MARKET' and message['o']['cp'] == True:  # take profit and close position
             logging.info(f"{self.symbol}_{self.pos_side} - Take profit order taken")
-            clean_open_orders(self.symbol, self.pos_side)
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == True:  # take profit and close position
             logging.info(f"{self.symbol}_{self.pos_side} - Stop loss order taken")
-            clean_open_orders(self.symbol, self.pos_side)
 
     def update_current_position(self):
         logging.debug(f"{self.symbol} UPDATING CURRENT POSITION...")
