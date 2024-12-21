@@ -146,12 +146,12 @@ class RecoveryZone:
             for position_info in response: # Loop through the list to find the relevant position
                 if position_info['positionSide'] == 'LONG':
                     self.data_grid['LONG']['entry_line']['position_side'] = position_info['positionSide']
-                    self.data_grid['LONG']['entry_line']['price'] = float(position_info['entryPrice'])
+                    self.data_grid['LONG']['entry_line']['price'] = round_to_tick(float(position_info['entryPrice']), self.data_grid['tick_size'])
                     self.data_grid['LONG']['entry_line']['quantity'] = abs(float(position_info['positionAmt']))
 
                 if position_info['positionSide'] == 'SHORT':
                     self.data_grid['SHORT']['entry_line']['position_side'] = position_info['positionSide']
-                    self.data_grid['SHORT']['entry_line']['price'] = float(position_info['entryPrice'])
+                    self.data_grid['SHORT']['entry_line']['price'] = round_to_tick(float(position_info['entryPrice']), self.data_grid['tick_size'])
                     self.data_grid['SHORT']['entry_line']['quantity'] = abs(float(position_info['positionAmt']))
 
             logging.debug(f"{self.symbol} Positions updated: {self.data_grid['LONG']['entry_line']} - {self.data_grid['SHORT']['entry_line']}")
