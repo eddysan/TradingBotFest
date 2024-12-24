@@ -143,19 +143,23 @@ def filter_operation(open_orders, position_side, kind_operation):
         "GRID": {
             "type": "LIMIT",
             "side": lambda ps: "BUY" if ps == "LONG" else "SELL"},
+            "position_side": position_side,
         "UNLOAD": {
             "type": "LIMIT",
             "side": lambda ps: "SELL" if ps == "LONG" else "BUY"},
+            "position_side": position_side,
         "TAKE_PROFIT": {
             "type": "TAKE_PROFIT_MARKET",
             "side": lambda ps: "SELL" if ps == "LONG" else "BUY"},
+            "position_side": position_side,
         "STOP_LOSS": {
             "type": "STOP_MARKET",
             "side": lambda ps: "SELL" if ps == "LONG" else "BUY"},
+            "position_side": position_side,
         "HEDGE": {
             "type": "STOP_MARKET",
-            "side": lambda ps: ("SELL" if ps == "LONG" else "BUY"),
-            "hedge_position": lambda ps: "SHORT" if ps == "LONG" else "LONG",
+            "side": lambda ps: ("BUY" if ps == "LONG" else "SELL"),
+            "position_side": lambda ps: "SHORT" if ps == "LONG" else "LONG",
         },
     }
 
