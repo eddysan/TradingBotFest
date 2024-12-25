@@ -95,11 +95,9 @@ def clean_open_orders(symbol, position_side):
         except client.exceptions.BinanceAPIException as api_exception:
             # Check if the error is due to a non-existent order
             if api_exception.code == -2011:  # Binance error code for "Order does not exist"
-                logging.warning(
-                    f"{symbol}_{position_side} - Order {order['orderId']} does not exist or is already cancelled.")
+                logging.warning(f"{symbol}_{position_side} - Order {order['orderId']} does not exist or is already cancelled.")
             else:
-                logging.exception(
-                    f"{symbol}_{position_side} - API error cancelling order {order['orderId']}: {api_exception}")
+                logging.exception(f"{symbol}_{position_side} - API error cancelling order {order['orderId']}: {api_exception}")
         except Exception as e:
             logging.exception(f"{symbol}_{position_side} - Unexpected error cancelling order {order['orderId']}: {e}")
 
@@ -129,8 +127,13 @@ def clean_order(symbol, position_side, kind_operation):
             response = client.futures_cancel_order(symbol=symbol, orderId=order['orderId'])
             logging.info(f"{symbol}_{position_side} - {kind_operation} | Price: {response['price']} | Quantity: {response['origQty']} ...CANCELLED")
 
+        except client.exceptions.BinanceAPIException as api_exception:
+            if api_exception.code == -2011:  # Binance error code for "Order does not exist"
+                logging.warning(f"{symbol}_{position_side} - Order {order['orderId']} does not exist or is already cancelled.")
+            else:
+                logging.exception(f"{symbol}_{position_side} - API error cancelling order {order['orderId']}: {api_exception}")
         except Exception as e:
-            logging.exception(f"{symbol}_{position_side} - Error cancelling order {order['orderId']}: {e}")
+            logging.exception(f"{symbol}_{position_side} - Unexpected error cancelling order {order['orderId']}: {e}")
 
     # Use ThreadPoolExecutor to cancel orders concurrently
     with ThreadPoolExecutor() as executor:
