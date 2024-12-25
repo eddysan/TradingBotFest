@@ -106,7 +106,7 @@ class RecoveryZone:
 
         if message['o']['ot'] == 'LIMIT':  # the operation is LIMIT generally first entry
             logging.info(f"{self.symbol}_{self.pos_side} Position is open")
-            self.update_current_position()
+            #self.update_current_position()
             write_config_data('ops', f"{self.symbol}.json", self.data_grid)
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == False:  # hedge order taken and close position is false
@@ -135,9 +135,12 @@ class RecoveryZone:
 
         if message['o']['ot'] == 'TAKE_PROFIT_MARKET' and message['o']['cp'] == True:  # take profit and close position
             logging.info(f"{self.symbol}_{self.pos_side} - Take profit order taken")
+            clean_order(self.symbol, self.pos_side,'GRID')
+            clean_order(self.symbol, self.pos_side, 'HEDGE')
 
-        if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == True:  # take profit and close position
+        if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == True:  # stop loss and close position
             logging.info(f"{self.symbol}_{self.pos_side} - Stop loss order taken")
+
 
     def update_current_position(self):
         logging.debug(f"{self.symbol} UPDATING CURRENT POSITION...")

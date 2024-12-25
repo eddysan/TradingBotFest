@@ -142,43 +142,46 @@ def filter_operation(open_orders, position_side, kind_operation):
     operation_map = {
         "GRID": {
             "type": "LIMIT",
-            "side": lambda ps: "BUY" if ps == "LONG" else "SELL"},
-            "position_side": position_side,
+            "side": lambda ps: "BUY" if ps == "LONG" else "SELL",
+            "position_side": lambda ps: "LONG" if ps == "LONG" else "SHORT",
+            "close_position": False
+        },
         "UNLOAD": {
             "type": "LIMIT",
-            "side": lambda ps: "SELL" if ps == "LONG" else "BUY"},
-            "position_side": position_side,
+            "side": lambda ps: "SELL" if ps == "LONG" else "BUY",
+            "position_side": lambda ps: "LONG" if ps == "LONG" else "SHORT",
+            "close_position": False
+        },
         "TAKE_PROFIT": {
             "type": "TAKE_PROFIT_MARKET",
-            "side": lambda ps: "SELL" if ps == "LONG" else "BUY"},
-            "position_side": position_side,
+            "side": lambda ps: "SELL" if ps == "LONG" else "BUY",
+            "position_side": lambda ps: "LONG" if ps == "LONG" else "SHORT",
+            "close_position": True
+        },
         "STOP_LOSS": {
             "type": "STOP_MARKET",
-            "side": lambda ps: "SELL" if ps == "LONG" else "BUY"},
-            "position_side": position_side,
+            "side": lambda ps: "SELL" if ps == "LONG" else "BUY",
+            "position_side": lambda ps: "LONG" if ps == "LONG" else "SHORT",
+            "close_position": True
+        },
         "HEDGE": {
             "type": "STOP_MARKET",
-            "side": lambda ps: ("BUY" if ps == "LONG" else "SELL"),
+            "side": lambda ps: "SELL" if ps == "LONG" else "BUY",
             "position_side": lambda ps: "SHORT" if ps == "LONG" else "LONG",
-        },
+            "close_position": False
+        }
     }
 
     operation = operation_map[kind_operation]
     order_type = operation["type"]
     side = operation["side"](position_side)
+    pos_side = operation["position_side"](position_side)
+    close_pos = operation["close_position"]
 
-    # Special case for HD (hedge)
-    if kind_operation == "HD":
-        hedge_position = operation["hedge_position"](position_side)
-        return [
-            order for order in open_orders
-            if order["positionSide"] == hedge_position and order["type"] == order_type and order["side"] == side
-        ]
-
-    # General case for all other operations
+    # General case for all operations
     return [
         order for order in open_orders
-        if order["positionSide"] == position_side and order["type"] == order_type and order["side"] == side
+        if order["positionSide"] == pos_side and order["type"] == order_type and order["side"] == side and order["closePosition"] == close_pos
     ]
 
 
