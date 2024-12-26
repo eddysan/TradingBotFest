@@ -286,7 +286,7 @@ class LUGrid:
         price_factor = 1 + (self.data_grid[self.pos_side]['unload_line']['distance']/100) \
             if self.data_grid[self.pos_side]['current_line']['position_side'] == 'LONG' \
             else 1 - (self.data_grid[self.pos_side]['unload_line']['distance']/100)
-        self.data_grid[self.pos_side]['unload_line']['price'] = self.round_to_tick_size(self.data_grid[self.pos_side]['current_line']['price'] * price_factor)
+        self.data_grid[self.pos_side]['unload_line']['price'] = round_to_tick(self.round_to_tick_size(self.data_grid[self.pos_side]['current_line']['price'] * price_factor), self.data_grid['tick_size'])
 
         # Calculate unload quantity
         self.data_grid[self.pos_side]['unload_line']['quantity'] = round(
