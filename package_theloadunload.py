@@ -303,8 +303,8 @@ class LUGrid:
         try:
             response = client.futures_position_information(symbol=self.symbol) # Fetch futures position information
             for position_info in response:
-                if float(position_info['positionAmt']) != 0:  # Skip empty positions if the exchange is in hedge mode the response 2 current position, one is 0
-                    self.data_grid[self.pos_side]['current_line']['price'] = float(position_info['entryPrice'])
+                if position_info['positionSide'] == self.pos_side:  # Skip empty positions if the exchange is in hedge mode the response 2 current position, one is 0
+                    self.data_grid[self.pos_side]['current_line']['price'] = round_to_tick(float(position_info['entryPrice']), self.data_grid['tick_size'])
                     self.data_grid[self.pos_side]['current_line']['quantity'] = abs(float(position_info['positionAmt']))
                     self.data_grid[self.pos_side]['current_line']['cost'] = round(self.data_grid[self.pos_side]['current_line']['price'] * self.data_grid[self.pos_side]['current_line']['quantity'], 2)
                     self.data_grid[self.pos_side]['current_line']['position_side'] = position_info['positionSide']
