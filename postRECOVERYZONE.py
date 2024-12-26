@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import os
 from package_recoveryzone import *
 #from package_common import *
 
