@@ -130,6 +130,7 @@ class LUGrid:
 
         match transaction_type:
             case "GRID":  # the event taken is in grid including entry transaction
+                logging.debug(f"{self.symbol}_{self.pos_side} - LCD - ATTENDING GRID OPERATION... price: {message['o']['p']}, quantity: {message['o']['q']}")
                 self.update_current_position()  # read position information at first the position will be same as entry_line
 
                 if self.data_grid[self.pos_side]['unload_line']['enabled']:
@@ -145,7 +146,7 @@ class LUGrid:
                 write_config_data('ops', f"{self.symbol}.json", self.data_grid)
 
             case "UNLOAD":  # the event is unload
-                logging.info(f"{self.symbol}_{self.pos_side} UNLOAD order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                logging.debug(f"{self.symbol}_{self.pos_side} - LCD - ATTENDING UNLOAD ORDER... price: {message['o']['p']}, quantity: {message['o']['q']}")
 
                 clean_open_orders(self.symbol, self.data_grid[self.pos_side]['entry_line']['position_side'])  # clean all order for the position side
                 self.update_current_position()  # read current position
@@ -160,17 +161,17 @@ class LUGrid:
                 write_config_data('ops', f"{self.symbol}.json", self.data_grid)
 
             case "STOP_LOSS":  # the event is stop loss
-                logging.info(f"{self.symbol}_{self.pos_side} SL order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                logging.debug(f"{self.symbol}_{self.pos_side} - LCD - ATTENDING STOP LOSS ORDER...  price: {message['o']['p']}, quantity: {message['o']['q']}")
                 clean_open_orders(self.symbol, self.data_grid[self.pos_side]['entry_line']['position_side'])  # clean all order for the position side
                 # close all open orders from list grid
 
             case "TAKE_PROFIT":  # the event is take profit
-                logging.info(f"{self.symbol}_{self.pos_side} TP order: price: {message['o']['p']}, quantity: {message['o']['q']}")
+                logging.debug(f"{self.symbol}_{self.pos_side} - LCD - ATTENDING TAKE PROFIT ORDER... price: {message['o']['p']}, quantity: {message['o']['q']}")
                 clean_open_orders(self.symbol, self.data_grid[self.pos_side]['entry_line']['position_side'])  # clean all order for the position side
                 # close all open orders from grid list
 
             case _:
-                logging.warning(f"{self.symbol}_{self.pos_side} No matching operation for {self.symbol}")
+                logging.warning(f"{self.symbol}_{self.pos_side} No matching operation to attend for {self.symbol}")
 
     # get transaction type
     def get_transaction_type(self, message):
