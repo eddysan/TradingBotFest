@@ -105,11 +105,12 @@ class RecoveryZone:
         self.opos_side = 'SHORT' if self.pos_side == 'LONG' else 'LONG'
 
         if message['o']['ot'] == 'LIMIT':  # the operation is LIMIT generally first entry
-            logging.info(f"{self.symbol}_{self.pos_side} Position is open")
-            #self.update_current_position()
+            logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - ENTRY_LINE - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
             write_config_data('ops', f"{self.symbol}.json", self.data_grid)
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == False:  # hedge order taken and close position is false
+            logging.info(
+                f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - HEDGE - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
             clean_all_open_orders(self.symbol)
             self.update_current_position()  # updating position before operate
             if float(self.data_grid['LONG']['entry_line']['quantity']) != float(self.data_grid['SHORT']['entry_line']['quantity']): #if the amounts are equal
@@ -134,12 +135,12 @@ class RecoveryZone:
             write_config_data('ops',f"{self.symbol}.json",self.data_grid)
 
         if message['o']['ot'] == 'TAKE_PROFIT_MARKET' and message['o']['cp'] == True:  # take profit and close position
-            logging.info(f"{self.symbol}_{self.pos_side} - Take profit order taken")
+            logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - TAKE_PROFIT - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
             clean_order(self.symbol, self.pos_side,'GRID')
             clean_order(self.symbol, self.pos_side, 'HEDGE')
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == True:  # stop loss and close position
-            logging.info(f"{self.symbol}_{self.pos_side} - Stop loss order taken")
+            logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - STOP_LOSS - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
 
 
     def update_current_position(self):
