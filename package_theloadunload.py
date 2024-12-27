@@ -14,17 +14,29 @@ def input_data():
     input_side = input("Side (LONG|SHORT): ").upper() or 'LONG'
     config['input_side'] = input_side
 
+    # Getting precisions for the symbol
+    info = client.futures_exchange_info()['symbols']
+    symbol_info = next((x for x in info if x['symbol'] == symbol), None)
+
+    # Retrieve precision filter
+    for f in symbol_info['filters']:
+        if f['filterType'] == 'LOT_SIZE':
+            config['step_size'] = float(f['stepSize'])
+        elif f['filterType'] == 'PRICE_FILTER':
+            config['tick_size'] = float(f['tickSize'])
+
+    config['price_precision'] = symbol_info['pricePrecision']
+    config['quantity_precision'] = symbol_info['quantityPrecision']
+
     # Fetch info if there is a current position
     response = client.futures_position_information(symbol=symbol)
-
-    # Loop through the list to find the relevant position based on 'positionSide'
     for position_info in response:
         if float(position_info['positionAmt']) != 0 and position_info['positionSide'] == input_side:  # if position amount is not zero, then there is a current position
             print(f"There is a current position... \n"
                 f"Position side: {position_info['positionSide']} \n"
                 f"Price: {position_info['entryPrice']} \n"
                 f"Quantity: {abs(position_info['positionAmt'])}")
-            config[input_side]['current_line']['price'] = float(position_info['entryPrice'])
+            config[input_side]['current_line']['price'] = round_to_tick(float(position_info['entryPrice']), config['tick_size'])
             config[input_side]['current_line']['quantity'] = abs(float(position_info['positionAmt']))
             config[input_side]['current_line']['cost'] = round(config[input_side]['current_line']['price'] * config[input_side]['current_line']['quantity'], 2)
             config[input_side]['current_line']['status'] = 'FILLED'
@@ -37,19 +49,6 @@ def input_data():
     config[input_side]['risk']['wallet_balance_usdt'] = round(next((float(b['balance']) for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0), 2)
     config[input_side]['risk']['risk_amount'] = round(float(config[input_side]['risk']['wallet_balance_usdt']) * (config[input_side]['risk']['percentage']/100), 2)
 
-    # Getting precisions for the symbol
-    info = client.futures_exchange_info()['symbols']
-    symbol_info = next((x for x in info if x['symbol'] == symbol), None)
-    
-    # Retrieve precision filter 
-    for f in symbol_info['filters']:
-        if f['filterType'] == 'LOT_SIZE':
-            config['step_size'] = float(f['stepSize'])
-        elif f['filterType'] == 'PRICE_FILTER':
-            config['tick_size'] = float(f['tickSize'])
-    
-    config['price_precision'] = symbol_info['pricePrecision']
-    config['quantity_precision'] = symbol_info['quantityPrecision']
 
     if config[input_side]['entry_line']['status'] != 'FILLED':
         #INPUT entry price

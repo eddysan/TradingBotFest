@@ -39,7 +39,7 @@ def input_data():
                 f"Position side: {position_info['positionSide']} \n"
                 f"Entry Price: {position_info['entryPrice']} \n"
                 f"Entry Quantity: {abs(float(position_info['positionAmt']))}")
-            config[cps]['entry_line']['price'] = float(position_info['entryPrice'])
+            config[cps]['entry_line']['price'] = round_to_tick(float(position_info['entryPrice']), config['tick_size'])
             config[cps]['entry_line']['quantity'] = abs(float(position_info['positionAmt']))
             config[cps]['entry_line']['status'] = 'FILLED'
 
