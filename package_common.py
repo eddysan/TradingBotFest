@@ -9,14 +9,12 @@ import logging
 
 # Reading json file, the json_file_path should include directory + file + .json extension
 def read_config_data(json_file_path):
-    try:
-        # Use 'open' with 'os.path.exists' to minimize redundant checks
-        if not os.path.exists(json_file_path):
-            logging.warning(f"Config file '{json_file_path}' not found.")
-            return None
+    if not os.path.exists(json_file_path):  # Use 'open' with 'os.path.exists' to minimize redundant checks
+        logging.warning(f"Config file '{json_file_path}' not found.")
+        return None
 
-        # Open and parse JSON efficiently
-        with open(json_file_path, 'r') as file:
+    try:
+        with open(json_file_path, 'r') as file: # Open and parse JSON efficiently
             return json.load(file)
 
     except (json.JSONDecodeError, FileNotFoundError) as e:
