@@ -37,7 +37,6 @@ def write_config_data(directory, file_name, data_grid):
 
 
 # get strategy from operation file
-@lru_cache(maxsize=128)
 def get_strategy(operation):
     try:
         return read_config_data(f"ops/{operation}.json")['strategy']
