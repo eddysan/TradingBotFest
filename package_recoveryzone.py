@@ -20,6 +20,9 @@ def input_data():
     info = client.futures_exchange_info()['symbols']
     symbol_info = next((x for x in info if x['symbol'] == config['symbol']), None)
 
+    # INPUT entries
+    entries = int(input(f"Number of entries (1|2): ") or 1)
+
     # Retrieve precision filter
     for f in symbol_info['filters']:
         if f['filterType'] == 'LOT_SIZE':
@@ -39,6 +42,7 @@ def input_data():
                 f"Position side: {position_info['positionSide']} \n"
                 f"Entry Price: {position_info['entryPrice']} \n"
                 f"Entry Quantity: {abs(float(position_info['positionAmt']))}")
+            
             config[cps]['entry_line']['price'] = round_to_tick(float(position_info['entryPrice']), config['tick_size'])
             config[cps]['entry_line']['quantity'] = abs(float(position_info['positionAmt']))
             config[cps]['entry_line']['status'] = 'FILLED'

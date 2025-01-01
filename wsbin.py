@@ -30,7 +30,6 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 ws = None  # Global variable for WebSocket connection
-
 # Create a ThreadPoolExecutor for handling messages in parallel
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)  # Adjust max_workers based on your system
 def process_message(message):
@@ -73,7 +72,6 @@ def on_open(ws):
     print("WebSocket connection established")
 
 def start_futures_stream():
-    """Start WebSocket stream to monitor futures order status in real-time."""
     global ws  # Reference the global WebSocket variable
     try:
         # Create a listen key for the futures user data stream
