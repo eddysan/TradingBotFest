@@ -7,6 +7,23 @@ import json
 import math
 import logging
 
+def get_exchange_info(symbol):
+    config = {'step_size':0, 'tick_size':0, 'price_precision':0, 'quantity_precision':0}
+    # Getting precisions for the symbol
+    info = client.futures_exchange_info()['symbols']
+    symbol_info = next((x for x in info if x['symbol'] == symbol), None)
+    
+    for f in symbol_info['filters']: # Retrieve precision filter
+        if f['filterType'] == 'LOT_SIZE':
+            config['step_size'] = float(f['stepSize'])
+        elif f['filterType'] == 'PRICE_FILTER':
+            config['tick_size'] = float(f['tickSize'])
+
+    config['price_precision'] = symbol_info['pricePrecision']
+    config['quantity_precision'] = symbol_info['quantityPrecision']
+
+    return config
+
 # Reading json file, the json_file_path should include directory + file + .json extension
 def read_config_data(json_file_path):
     if not os.path.exists(json_file_path):  # Use 'open' with 'os.path.exists' to minimize redundant checks
