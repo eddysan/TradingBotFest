@@ -35,7 +35,7 @@ def input_data():
             print(f"There is a current position... \n"
                 f"Position side: {position_info['positionSide']} \n"
                 f"Price: {position_info['entryPrice']} \n"
-                f"Quantity: {abs(position_info['positionAmt'])}")
+                f"Quantity: {abs(float(position_info['positionAmt']))}")
             config[input_side]['current_line']['price'] = round_to_tick(float(position_info['entryPrice']), config['tick_size'])
             config[input_side]['current_line']['quantity'] = abs(float(position_info['positionAmt']))
             config[input_side]['current_line']['cost'] = round(config[input_side]['current_line']['price'] * config[input_side]['current_line']['quantity'], 2)
