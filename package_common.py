@@ -7,22 +7,35 @@ import json
 import math
 import logging
 
+# getting exchange information
 def get_exchange_info(symbol):
-    config = {'step_size':0, 'tick_size':0, 'price_precision':0, 'quantity_precision':0}
-    # Getting precisions for the symbol
+    # Retrieve symbol info from the exchange
     info = client.futures_exchange_info()['symbols']
     symbol_info = next((x for x in info if x['symbol'] == symbol), None)
-    
-    for f in symbol_info['filters']: # Retrieve precision filter
-        if f['filterType'] == 'LOT_SIZE':
-            config['step_size'] = float(f['stepSize'])
-        elif f['filterType'] == 'PRICE_FILTER':
-            config['tick_size'] = float(f['tickSize'])
 
-    config['price_precision'] = symbol_info['pricePrecision']
-    config['quantity_precision'] = symbol_info['quantityPrecision']
+    if not symbol_info:
+        raise ValueError(f"Symbol '{symbol}' not found in exchange info.")
+
+    config = {
+        'price_precision': symbol_info['pricePrecision'],
+        'quantity_precision': symbol_info['quantityPrecision']
+    }
+
+    filters = {f['filterType']: f for f in symbol_info['filters']}
+    if 'PRICE_FILTER' in filters:
+        config['tick_size'] = float(filters['PRICE_FILTER']['tickSize'])
 
     return config
+
+# get wallet usdt balance
+def get_wallet_balance_usdt():
+    # Retrieve futures account balance and filter for USDT in one pass
+    balances = client.futures_account_balance()
+    for b in balances:
+        if b["asset"] == "USDT":
+            return round(float(b['balance']), 2)
+    return 0.0  # Return 0.0 if no USDT balance is found
+
 
 # Reading json file, the json_file_path should include directory + file + .json extension
 def read_config_data(json_file_path):
@@ -336,7 +349,7 @@ def post_hedge_order(symbol, data_line):
 
 # post limit orders as grid
 def post_grid_order(symbol, data_line):
-    logging.debug(f"{symbol} POSTING BODY LINE...")
+    logging.debug(f"{symbol} POSTING GRID ORDERS...")
 
     def post_order(order):  # Helper function to post a single order
         try:
@@ -362,6 +375,7 @@ def post_grid_order(symbol, data_line):
                 logging.exception(f"{symbol}_{order['position_side']} - Binance API Error: {e}")
 
     try:
+        data_line = [order for order in data_line if order.get('status') == 'NEW'] #filtering just orders with status NEW, to post
         with ThreadPoolExecutor(max_workers=10) as executor:  # Adjust max_workers for concurrency
             # Submit tasks for all orders in the data_line list
             futures = [executor.submit(post_order, order) for order in data_line]

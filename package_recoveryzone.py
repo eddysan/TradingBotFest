@@ -1,3 +1,5 @@
+from importlib.metadata import entry_points
+
 from binance.client import Client
 import json
 import logging
@@ -16,37 +18,46 @@ def input_data():
     ps = config['input_side']
     ops = 'SHORT' if ps == 'LONG' else 'LONG'
 
-    # Getting precisions for the symbol
-    info = client.futures_exchange_info()['symbols']
-    symbol_info = next((x for x in info if x['symbol'] == config['symbol']), None)
+    xinfo = get_exchange_info(config['symbol'])
+    config['tick_size'] = xinfo['tick_size']
+    config['price_precision'] = xinfo['price_precision']
+    config['quantity_precision'] = xinfo['quantity_precision']
 
-    # Retrieve precision filter
-    for f in symbol_info['filters']:
-        if f['filterType'] == 'LOT_SIZE':
-            config['step_size'] = float(f['stepSize'])
-        elif f['filterType'] == 'PRICE_FILTER':
-            config['tick_size'] = float(f['tickSize'])
-
-    config['price_precision'] = symbol_info['pricePrecision']
-    config['quantity_precision'] = symbol_info['quantityPrecision']
+    # INPUT number of entries for order
+    nentries = int(input(f"Number of entries (1|2): ") or 1)
 
     response = client.futures_position_information(symbol=config['symbol'])  # fetch current position information
     for position_info in response:
-        if float(position_info['positionAmt']) != 0: # check if there is an operation on position side
-            cps = position_info['positionSide']
+        if float(position_info['positionAmt']) != 0 and position_info['positionSide'] == ps: # check if there is an operation on position side
             print(
                 f"There is a current position as entry values... \n"
                 f"Position side: {position_info['positionSide']} \n"
                 f"Entry Price: {position_info['entryPrice']} \n"
                 f"Entry Quantity: {abs(float(position_info['positionAmt']))}")
-            config[cps]['entry_line']['price'] = round_to_tick(float(position_info['entryPrice']), config['tick_size'])
-            config[cps]['entry_line']['quantity'] = abs(float(position_info['positionAmt']))
-            config[cps]['entry_line']['status'] = 'FILLED'
 
+            if nentries == 1:
+                config[ps]['input_line'].append({
+                    'price': round_to_tick(float(position_info['entryPrice']), config['tick_size']),
+                    'quantity': abs(float(position_info['positionAmt'])),
+                    'status':'FILLED'
+                })
+
+            if nentries == 2:
+                sec_price = float(input(f"Entry second price ($): "))
+                config[ps]['input_line'].append({
+                    'price': round_to_tick(float(position_info['entryPrice']), config['tick_size']),
+                    'quantity': abs(float(position_info['positionAmt'])),
+                    'status':'FILLED'},
+                    {'price': round_to_tick(sec_price, config['tick_size']),
+                    'quantity': abs(float(position_info['positionAmt'])),
+                     'status':'NEW'
+                    }
+                )
+                config[ps]['entry_line']['status'] = 'FILLED'
 
     config['risk']['product_factor'] = round((config['risk']['target_factor'] + 1) / config['risk']['target_factor'],2)  # generating product factor
     # getting wallet current balance
-    config['risk']['wallet_balance_usdt'] = round(next((float(b['balance']) for b in client.futures_account_balance() if b["asset"] == "USDT"), 0.0), 2)
+    config['risk']['wallet_balance_usdt'] = get_wallet_balance_usdt()
 
     # INPUT price and quantity for long and short
     if config[ps]['entry_line']['status'] == 'FILLED': #if entry line is filed then just post hedge points
@@ -109,8 +120,7 @@ class RecoveryZone:
             write_config_data('ops', f"{self.symbol}.json", self.data_grid)
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == False:  # hedge order taken and close position is false
-            logging.info(
-                f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - HEDGE - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
+            logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - HEDGE - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
             clean_all_open_orders(self.symbol)
             self.update_current_position()  # updating position before operate
             if float(self.data_grid['LONG']['entry_line']['quantity']) != float(self.data_grid['SHORT']['entry_line']['quantity']): #if the amounts are equal

@@ -1,0 +1,6 @@
+[project]
+name = "your_project_name"
+version = "0.1.0"
+
+[project.dependencies]
+python = ">=3.12,<3.13"

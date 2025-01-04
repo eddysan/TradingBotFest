@@ -247,6 +247,7 @@ class LUGrid:
                                    "quantity" : round(new_quantity, self.data_grid['quantity_precision']),
                                    "type": "LIMIT",
                                    "cost" : round(new_price * new_quantity, 2),
+                                    "status": "NEW"
                                    })
 
             # calculate the average price and accumulated quantity if the position is taken

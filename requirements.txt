@@ -1,6 +1,5 @@
 appdirs==1.4.4
 atomicwrites==1.4.0
-binance-connector==3.9.0
 dateparser==1.2.0
 jsonpointer==2.1
 protobuf==3.20.3
@@ -12,3 +11,4 @@ python-binance==1.0.19
 tzlocal==5.2
 websockets==13.1
 wheel==0.43.0
+binance-connector==3.9.0
