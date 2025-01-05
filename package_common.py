@@ -356,7 +356,7 @@ def post_grid_order(symbol, data_line):
             response = client.futures_create_order(
                 symbol=symbol,
                 side=order['side'],
-                type=order['type'],
+                type='LIMIT',
                 timeInForce='GTC',
                 positionSide=order['position_side'],
                 price=order['price'],
