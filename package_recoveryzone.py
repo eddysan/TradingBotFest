@@ -1,9 +1,4 @@
-from importlib.metadata import entry_points
 
-from binance.client import Client
-import json
-import logging
-import os
 from package_common import *
 
 def input_data():
@@ -58,6 +53,8 @@ def input_data():
     config['risk']['wallet_balance_usdt'] = get_wallet_balance_usdt() # getting wallet current balance
 
     if not config[ps]['entry_line']: #if entry line is empty
+        first_quantity = 0
+        second_quantity = 0
         first_price = float(input(f"First entry price ($): "))  # entry price for long position
         second_price = float(input(f"Second entry price ($): "))  # entry price for long position
         config[ps]['take_profit_line']['price'] = round_to_tick(float(input(f"Take profit price: ")),config['tick_size'])
@@ -144,12 +141,14 @@ class RecoveryZone:
                 if self.data_grid['risk']['min_risk'] < self.data_grid['risk']['max_risk']:  # if risk is more than max then both operations should be same
                     new_quantity = float((self.data_grid['risk']['product_factor'] * self.data_grid[self.pos_side]['hedge_line']['quantity']) - self.data_grid[self.opos_side]['hedge_line']['quantity'])
                     self.data_grid[self.opos_side]['hedge_line']['quantity'] = round(new_quantity,self.data_grid['quantity_precision'])
-                    post_hedge_order(self.symbol, self.data_grid[self.opos_side]['hedge_line'])
+                    self.generate_recovery_line()
+                    post_hedge_order(self.symbol, self.data_grid[self.opos_side]['recovery_line'])
 
                 else:
                     new_quantity = self.data_grid[self.pos_side]['hedge_line']['quantity'] - self.data_grid[self.opos_side]['hedge_line']['quantity']
                     self.data_grid[self.opos_side]['hedge_line']['quantity'] = round(new_quantity, self.data_grid['quantity_precision'])  # same amount
-                    post_hedge_order(self.symbol, self.data_grid[self.opos_side]['hedge_line'])
+                    #self.data_grid[self.opos_side]['hedge_line']['price'] = 0 # new price using percentage
+                    post_hedge_order(self.symbol, self.data_grid[self.opos_side]['recovery_line'])
 
                 self.generate_points()
                 post_take_profit_order(self.symbol, self.data_grid['LONG']['take_profit_line'])
@@ -234,6 +233,17 @@ class RecoveryZone:
         # STOP LOSS POINTS
         self.data_grid['LONG']['stop_loss_line']['price'] = self.data_grid['SHORT']['take_profit_line']['price']
         self.data_grid['SHORT']['stop_loss_line']['price'] = self.data_grid['LONG']['take_profit_line']['price']
+
+    def generate_recovery_line(self):
+        inside_distance = get_distance(self.data_grid[self.opos_side]['hedge_line']['price'], self.data_grid[self.pos_side]['hedge_line']['price']) #getting distance between points
+        if inside_distance >= 0.2: #while distance is more than 0.2%
+            target_distance = (inside_distance / 100) * self.data_grid['risk']['reduce_hedge']
+            target_price = self.data_grid[self.opos_side]['hedge_line']['price'] * (1 + target_distance / 100) if self.pos_side == 'LONG' else self.data_grid[self.opos_side]['hedge_line']['price'] * (1 - target_distance / 100)
+            self.data_grid[self.opos_side]['recovery_line']['price'] = round_to_tick(target_price, self.data_grid['tick_size'])
+            self.data_grid[self.opos_side]['recovery_line']['quantity'] = self.data_grid[self.opos_side]['hedge_line']['quantity']
+        else:
+            self.data_grid[self.opos_side]['recovery_line']['price'] = self.data_grid[self.opos_side]['hedge_line']['price']
+            self.data_grid[self.opos_side]['recovery_line']['quantity'] = self.data_grid[self.opos_side]['hedge_line']['quantity']
 
 
 

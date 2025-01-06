@@ -1,11 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from binance.exceptions import BinanceAPIException
 from package_connection import client
-from functools import lru_cache
 import os
 import json
 import math
 import logging
+
 
 # getting exchange information
 def get_exchange_info(symbol):
@@ -58,8 +58,9 @@ def write_config_data(directory, file_name, data_grid):
     file_path = os.path.join(directory, file_name)
 
     try:
-        with open(file_path, 'w', buffering=8192) as file:  # 8KB buffering for efficiency
-            json.dump(data_grid, file, indent=4, separators=(',', ':'))  # Compact JSON format
+        # Open file in text write mode with UTF-8 encoding
+        with open(file_path, mode='w', encoding='utf-8', buffering=8192) as file:
+            json.dump(data_grid, file, indent=4, separators=(',', ':'))  # Write JSON with formatting
     except (OSError, TypeError) as e:
         print(f"Error writing to file '{file_path}': {e}")
 
@@ -90,7 +91,7 @@ def clean_all_open_orders(symbol):
     logging.debug(f"{symbol} - CLEAN ALL OPEN ORDERS...")
     try:
         # Cancel all open orders directly without fetching them first
-        response = client.futures_cancel_all_open_orders(symbol=symbol)
+        client.futures_cancel_all_open_orders(symbol=symbol)
         logging.info(f"{symbol} - All open orders cancelled")
 
     except Exception as e:
@@ -217,19 +218,19 @@ def filter_operation(open_orders, position_side, kind_operation):
 
 # Post a limit order to Binance
 def post_limit_order(symbol, data_line):
+    # Extract fields for cleaner code and avoid redundant dictionary lookups
+    side = data_line.get('side')
+    position_side = data_line.get('position_side')
+    price = data_line.get('price')
+    quantity = data_line.get('quantity')
+    label = data_line.get('label', 'LIMIT')  # Default label to 'LIMIT' if not provided
+
+    # Skip orders with zero quantity
+    if not quantity:  # Avoid unnecessary string formatting and reduce log clutter
+        logging.info(f"{symbol}_{position_side} - {label} operation skipped due to zero quantity.")
+        return
+
     try:
-        # Extract fields for cleaner code and avoid redundant dictionary lookups
-        side = data_line.get('side')
-        position_side = data_line.get('position_side')
-        price = data_line.get('price')
-        quantity = data_line.get('quantity')
-        label = data_line.get('label', 'LIMIT')  # Default label to 'LIMIT' if not provided
-
-        # Skip orders with zero quantity
-        if not quantity:  # Avoid unnecessary string formatting and reduce log clutter
-            logging.info(f"{symbol}_{position_side} - {label} operation skipped due to zero quantity.")
-            return
-
         # Place the order
         response = client.futures_create_order(
             symbol=symbol,
@@ -254,13 +255,13 @@ def post_limit_order(symbol, data_line):
 
 # post take profit order
 def post_take_profit_order(symbol, data_line):
+    position_side = data_line.get('position_side')
+    price = data_line.get('price')
+    side = data_line.get('side')
+    label = data_line.get('label')
+    quantity = data_line.get('quantity')
+
     try:
-        # Pre-fetch values for efficiency
-        position_side = data_line.get('position_side')
-        price = data_line.get('price')
-        side = data_line.get('side')
-        label = data_line.get('label')
-        quantity = data_line.get('quantity')
         response = client.futures_create_order(
             symbol=symbol,
             side=side,
@@ -283,15 +284,15 @@ def post_take_profit_order(symbol, data_line):
 
 # post stop loss order
 def post_stop_loss_order(symbol, data_line):
-    try:
-        position_side = data_line.get('position_side')
-        price = data_line.get('price')
-        side = data_line.get('side')
-        label = data_line.get('label')
-        distance = round(data_line.get('distance', 0), 2)  # Default to 0 if missing
-        quantity = data_line.get('quantity')
-        cost = data_line.get('cost')
+    position_side = data_line.get('position_side')
+    price = data_line.get('price')
+    side = data_line.get('side')
+    label = data_line.get('label')
+    distance = round(data_line.get('distance', 0), 2)  # Default to 0 if missing
+    quantity = data_line.get('quantity')
+    cost = data_line.get('cost')
 
+    try:
         # Post the stop loss order
         response = client.futures_create_order(
             symbol=symbol,
@@ -316,13 +317,13 @@ def post_stop_loss_order(symbol, data_line):
 
 # post hedge order
 def post_hedge_order(symbol, data_line):
-    try:
-        position_side = data_line.get('position_side')
-        price = data_line.get('price')
-        side = data_line.get('side')
-        quantity = data_line.get('quantity')
-        label = data_line.get('label')
+    position_side = data_line.get('position_side')
+    price = data_line.get('price')
+    side = data_line.get('side')
+    quantity = data_line.get('quantity')
+    label = data_line.get('label')
 
+    try:
         # Post the hedge order
         response = client.futures_create_order(
             symbol=symbol,
