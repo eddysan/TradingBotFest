@@ -88,9 +88,9 @@ def input_data():
 
     # INPUT hedge points
     if ops == 'LONG':
-        config[ops]['hedge_line']['price'] = round_to_tick(config[ps]['entry_line'][1]['price'] * (1 + 0.002), config['tick_size'])
+        config[ops]['hedge_line']['price'] = round_to_tick(config[ps]['entry_line'][1]['price'] * (1 + (config['risk']['hedge_distance']/100) ), config['tick_size'])
     elif ops == 'SHORT':
-        config[ops]['hedge_line']['price'] = round_to_tick(config[ps]['entry_line'][1]['price'] * (1 - 0.002), config['tick_size'])
+        config[ops]['hedge_line']['price'] = round_to_tick(config[ps]['entry_line'][1]['price'] * (1 - (config['risk']['hedge_distance']/100)), config['tick_size'])
 
     total_quantity = config[ps]['entry_line'][0]['quantity'] + config[ps]['entry_line'][1]['quantity']
     config[ops]['hedge_line']['quantity'] = round(config['risk']['product_factor'] * total_quantity, config['quantity_precision']) #short quantity applied by product factor
@@ -147,7 +147,7 @@ class RecoveryZone:
                 else:
                     new_quantity = self.data_grid[self.pos_side]['hedge_line']['quantity'] - self.data_grid[self.opos_side]['hedge_line']['quantity']
                     self.data_grid[self.opos_side]['hedge_line']['quantity'] = round(new_quantity, self.data_grid['quantity_precision'])  # same amount
-                    #self.data_grid[self.opos_side]['hedge_line']['price'] = 0 # new price using percentage
+                    self.generate_recovery_line()
                     post_hedge_order(self.symbol, self.data_grid[self.opos_side]['recovery_line'])
 
                 self.generate_points()
@@ -240,11 +240,10 @@ class RecoveryZone:
             target_distance = (inside_distance / 100) * self.data_grid['risk']['reduce_hedge']
             target_price = self.data_grid[self.opos_side]['hedge_line']['price'] * (1 + target_distance / 100) if self.pos_side == 'LONG' else self.data_grid[self.opos_side]['hedge_line']['price'] * (1 - target_distance / 100)
             self.data_grid[self.opos_side]['recovery_line']['price'] = round_to_tick(target_price, self.data_grid['tick_size'])
-            self.data_grid[self.opos_side]['recovery_line']['quantity'] = self.data_grid[self.opos_side]['hedge_line']['quantity']
         else:
             self.data_grid[self.opos_side]['recovery_line']['price'] = self.data_grid[self.opos_side]['hedge_line']['price']
-            self.data_grid[self.opos_side]['recovery_line']['quantity'] = self.data_grid[self.opos_side]['hedge_line']['quantity']
 
+        self.data_grid[self.opos_side]['recovery_line']['quantity'] = self.data_grid[self.opos_side]['hedge_line']['quantity']
 
 
 
