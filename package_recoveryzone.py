@@ -138,7 +138,7 @@ class RecoveryZone:
             if float(self.data_grid['LONG']['hedge_line']['quantity']) != float(self.data_grid['SHORT']['hedge_line']['quantity']): #if the amounts are equal
                 self.data_grid['risk']['min_risk'] = round(self.data_grid['risk']['min_risk'] * self.data_grid['risk']['product_factor'],2)  # increasing risk
 
-                if self.data_grid['risk']['min_risk'] < self.data_grid['risk']['max_risk']:  # if risk is more than max then both operations should be same
+                if float(self.data_grid['risk']['min_risk']) < float(self.data_grid['risk']['max_risk']):  # if risk is more than max then both operations should be same
                     new_quantity = float((self.data_grid['risk']['product_factor'] * self.data_grid[self.pos_side]['hedge_line']['quantity']) - self.data_grid[self.opos_side]['hedge_line']['quantity'])
                     self.data_grid[self.opos_side]['hedge_line']['quantity'] = round(new_quantity,self.data_grid['quantity_precision'])
                     self.generate_recovery_line()
