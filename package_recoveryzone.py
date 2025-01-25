@@ -236,13 +236,9 @@ class RecoveryZone:
 
     def generate_recovery_line(self):
         inside_distance = get_distance(self.data_grid[self.opos_side]['hedge_line']['price'], self.data_grid[self.pos_side]['hedge_line']['price']) #getting distance between points
-        if inside_distance >= 0.2: #while distance is more than 0.2%
-            target_distance = (inside_distance / 100) * self.data_grid['risk']['reduce_hedge']
-            target_price = self.data_grid[self.opos_side]['hedge_line']['price'] * (1 + target_distance / 100) if self.pos_side == 'LONG' else self.data_grid[self.opos_side]['hedge_line']['price'] * (1 - target_distance / 100)
-            self.data_grid[self.opos_side]['recovery_line']['price'] = round_to_tick(target_price, self.data_grid['tick_size'])
-        else:
-            self.data_grid[self.opos_side]['recovery_line']['price'] = self.data_grid[self.opos_side]['hedge_line']['price']
-
+        target_distance = (inside_distance / 100) * self.data_grid['risk']['reduce_hedge']
+        target_price = self.data_grid[self.opos_side]['hedge_line']['price'] * (1 + target_distance / 100) if self.pos_side == 'LONG' else self.data_grid[self.opos_side]['hedge_line']['price'] * (1 - target_distance / 100)
+        self.data_grid[self.opos_side]['recovery_line']['price'] = round_to_tick(target_price, self.data_grid['tick_size'])
         self.data_grid[self.opos_side]['recovery_line']['quantity'] = self.data_grid[self.opos_side]['hedge_line']['quantity']
 
 
