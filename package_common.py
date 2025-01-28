@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from binance.exceptions import BinanceAPIException
 from package_connection import client
-from typing import IO
 import os
 import json
 import math
@@ -174,40 +173,40 @@ def filter_operation(open_orders, position_side, kind_operation):
     operation_map = {
         "GRID": {
             "type": "LIMIT",
-            "side": lambda ps: "BUY" if ps == "LONG" else "SELL",
-            "position_side": lambda ps: "LONG" if ps == "LONG" else "SHORT",
+            "side": "BUY" if position_side == "LONG" else "SELL",
+            "position_side": position_side,
             "close_position": False
         },
         "UNLOAD": {
             "type": "LIMIT",
-            "side": lambda ps: "SELL" if ps == "LONG" else "BUY",
-            "position_side": lambda ps: "LONG" if ps == "LONG" else "SHORT",
+            "side": "SELL" if position_side == "LONG" else "BUY",
+            "position_side": position_side,
             "close_position": False
         },
         "TAKE_PROFIT": {
             "type": "TAKE_PROFIT_MARKET",
-            "side": lambda ps: "SELL" if ps == "LONG" else "BUY",
-            "position_side": lambda ps: "LONG" if ps == "LONG" else "SHORT",
+            "side": "SELL" if position_side == "LONG" else "BUY",
+            "position_side": position_side,
             "close_position": True
         },
         "STOP_LOSS": {
             "type": "STOP_MARKET",
-            "side": lambda ps: "SELL" if ps == "LONG" else "BUY",
-            "position_side": lambda ps: "LONG" if ps == "LONG" else "SHORT",
+            "side": "SELL" if position_side == "LONG" else "BUY",
+            "position_side": position_side,
             "close_position": True
         },
         "HEDGE": {
             "type": "STOP_MARKET",
-            "side": lambda ps: "SELL" if ps == "LONG" else "BUY",
-            "position_side": lambda ps: "SHORT" if ps == "LONG" else "LONG",
+            "side": "BUY" if position_side == "LONG" else "SELL",
+            "position_side": position_side,
             "close_position": False
         }
     }
 
     operation = operation_map[kind_operation]
     order_type = operation["type"]
-    side = operation["side"](position_side)
-    pos_side = operation["position_side"](position_side)
+    side = operation["side"]
+    pos_side = operation["position_side"]
     close_pos = operation["close_position"]
 
     # General case for all operations

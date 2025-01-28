@@ -161,7 +161,7 @@ class RecoveryZone:
         if message['o']['ot'] == 'TAKE_PROFIT_MARKET' and message['o']['cp'] == True:  # take profit and close position
             logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - TAKE_PROFIT - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
             clean_order(self.symbol, self.pos_side,'GRID')
-            clean_order(self.symbol, self.pos_side, 'HEDGE')
+            clean_order(self.symbol, self.opos_side, 'HEDGE')
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == True:  # stop loss and close position
             logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - STOP_LOSS - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
