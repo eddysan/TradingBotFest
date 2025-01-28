@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from binance.exceptions import BinanceAPIException
 from package_connection import client
-from typing import IO
 import os
 import json
 import math
