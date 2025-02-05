@@ -1,11 +1,6 @@
-import json
-from binance.client import Client
-from binance.streams import BinanceSocketManager
 from websocket import WebSocketApp
 import time
 import concurrent.futures
-import logging
-from package_common import *
 from package_theloadunload import *
 from package_cardiac import *
 from package_recoveryzone import *
@@ -41,10 +36,13 @@ def process_message(message):
         strategy = get_strategy(symbol) # Determine strategy and execute relevant logic
         if strategy == "THE_LOAD_UNLOAD_GRID":
             LUGrid(symbol).attend_message(message)
+            return
         elif strategy == "CARDIAC":
             CardiacGrid(symbol).attend_message(message)
+            return
         elif strategy == "RECOVERY_ZONE":
             RecoveryZone(symbol).attend_message(message)
+            return
 
     except KeyError as ke:
         logging.error(f"Missing key {ke} in message: {message}") # Handle missing keys gracefully

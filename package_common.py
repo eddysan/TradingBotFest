@@ -200,7 +200,13 @@ def filter_operation(open_orders, position_side, kind_operation):
             "side": "BUY" if position_side == "LONG" else "SELL",
             "position_side": position_side,
             "close_position": False
-        }
+        },
+        "TRAILING_STOP_MARKET": {
+            "type": "TRAILING_STOP_MARKET",
+            "side": "SELL" if position_side == "LONG" else "BUY",
+            "position_side": position_side,
+            "close_position": False
+        },
     }
 
     operation = operation_map[kind_operation]
@@ -391,4 +397,37 @@ def post_grid_order(symbol, data_line):
 
     except Exception as e:
         logging.exception(f"{symbol} Error in grid posting process: {e}")
+
+def post_trailing_stop_order(symbol, data_line):
+    position_side = data_line.get('position_side')
+    activation_price = data_line.get('activation_price')
+    callback_rate = data_line.get('callback_rate')
+    side = data_line.get('side')
+    quantity = data_line.get('quantity')
+    label = data_line.get('label')
+
+    try:
+        response = client.futures_create_order(
+            symbol=symbol,
+            side=side,
+            type='TRAILING_STOP_MARKET',
+            timeInForce='GTC',
+            positionSide=position_side,
+            activationPrice=activation_price,
+            callbackRate=callback_rate,
+            quantity=quantity,
+            closePosition=False
+        )
+
+        logging.debug(f"{symbol}_{position_side} Post hedge order response: {response}")
+        logging.info(f"{symbol}_{position_side} - {label} | Activation Price: {activation_price} | Quantity: {quantity} ...POSTED")
+
+    except KeyError as ke:
+        logging.error(f"Missing key in data_line: {ke} - Data: {data_line}")
+    except BinanceAPIException as e:
+        if e.code == -2021:
+            logging.error(f"{symbol}_{position_side} - {label} | Activation Price: {activation_price} ...TRIGGERED")
+        else:
+            logging.exception(f"{symbol}_{position_side} - Binance API Error: {e}")
+
 

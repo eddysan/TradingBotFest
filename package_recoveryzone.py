@@ -105,6 +105,8 @@ class RecoveryZone:
         # getting operation code
         self.symbol = symbol
         self.data_grid = read_config_data(f"ops/{self.symbol}.json")  # reading config file
+        self.pos_side = 'NONE' #initialize data
+        self.opos_side = 'NONE' #initialize data
 
     # post both orders, limit and hedge
     def post_orders(self):
@@ -123,18 +125,24 @@ class RecoveryZone:
         if message['o']['X'] != 'FILLED': # Skip processing unless the message status is 'FILLED'
             return
 
-        self.symbol = message['o']['s']  # symbol
         self.pos_side = message['o']['ps'] #getting position side
         self.opos_side = 'SHORT' if self.pos_side == 'LONG' else 'LONG'
 
-        if message['o']['ot'] == 'LIMIT':  # the operation is LIMIT generally first entry
+        if message['o']['ot'] == 'LIMIT':  # the operation is LIMIT generally first and/or second entry
             logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - hedge_line - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
+            self.update_current_position() # updating position before operate
+            if self.data_grid[self.pos_side]['trailing_stop_line']['enabled']:
+                clean_order(self.symbol, self.pos_side, 'TRAILING_STOP_MARKET') #clean a trailing stop if there is one
+                self.generate_trailing_stop()
+                post_trailing_stop_order(self.symbol, self.data_grid[self.pos_side]['trailing_stop_line'])
+
             write_config_data('ops', f"{self.symbol}.json", self.data_grid)
+            return
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == False:  # hedge order taken and close position is false
             logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - HEDGE - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
-            clean_all_open_orders(self.symbol)
             self.update_current_position()  # updating position before operate
+            clean_all_open_orders(self.symbol)
             if float(self.data_grid['LONG']['hedge_line']['quantity']) != float(self.data_grid['SHORT']['hedge_line']['quantity']): #if the amounts are equal
                 self.data_grid['risk']['min_risk'] = round(self.data_grid['risk']['min_risk'] * self.data_grid['risk']['product_factor'],2)  # increasing risk
 
@@ -150,21 +158,35 @@ class RecoveryZone:
                     self.generate_recovery_line()
                     post_hedge_order(self.symbol, self.data_grid[self.opos_side]['recovery_line'])
 
-                self.generate_points()
+                self.generate_distances()
+                self.generate_break_even_points()
+                self.generate_take_profit_points()
+                self.generate_stop_loss_points()
                 post_take_profit_order(self.symbol, self.data_grid['LONG']['take_profit_line'])
                 post_stop_loss_order(self.symbol, self.data_grid['LONG']['stop_loss_line'])
                 post_take_profit_order(self.symbol, self.data_grid['SHORT']['take_profit_line'])
                 post_stop_loss_order(self.symbol, self.data_grid['SHORT']['stop_loss_line'])
 
             write_config_data('ops',f"{self.symbol}.json",self.data_grid)
+            return
 
         if message['o']['ot'] == 'TAKE_PROFIT_MARKET' and message['o']['cp'] == True:  # take profit and close position
             logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - TAKE_PROFIT - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
             clean_order(self.symbol, self.pos_side,'GRID')
             clean_order(self.symbol, self.opos_side, 'HEDGE')
+            return
 
         if message['o']['ot'] == 'STOP_MARKET' and message['o']['cp'] == True:  # stop loss and close position
             logging.info(f"{self.symbol}_{self.pos_side} - RECOVERY_ZONE - STOP_LOSS - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
+            clean_order(self.symbol, self.pos_side,'GRID')
+            clean_order(self.symbol, self.opos_side, 'HEDGE')
+            return
+
+        if message['o']['ot'] == 'TRAILING_STOP_MARKET': #when trailing stop is taken (not activation price), trailing stop protection
+            logging.info(f"{self.symbol}_{self.pos_side} - TRAILING_STOP_MARKET - Price: {message['o']['p']} | Quantity: {message['o']['q']} ...FILLED")
+            clean_order(self.symbol, self.pos_side,'GRID') #delete a LIMIT order if there is another entry
+            clean_order(self.symbol, self.opos_side, 'HEDGE') #delete hedge order
+            return
 
 
     def update_current_position(self):
@@ -188,8 +210,8 @@ class RecoveryZone:
             logging.debug(f"{self.symbol} Can't update current position: {e}")
 
 
-    def generate_points(self):
-        logging.debug(f"{self.symbol} GENERATING POINTS...")
+    def generate_distances(self):
+        logging.debug(f"{self.symbol} GENERATING DISTANCES...")
         # getting distances
         self.data_grid['LONG']['hedge_line']['distance'] = get_distance(self.data_grid['LONG']['hedge_line']['price'], self.data_grid['SHORT']['hedge_line']['price'])
         self.data_grid['SHORT']['hedge_line']['distance'] = get_distance(self.data_grid['SHORT']['hedge_line']['price'], self.data_grid['LONG']['hedge_line']['price'])
@@ -200,7 +222,9 @@ class RecoveryZone:
         self.data_grid['SHORT']['break_even_line']['win_distance'] = round(self.data_grid['SHORT']['hedge_line']['distance'] * self.data_grid['risk']['target_factor'], 2)
         self.data_grid['SHORT']['break_even_line']['lost_distance'] = round(self.data_grid['LONG']['hedge_line']['distance'] * self.data_grid['risk']['target_factor']+1, 2)
 
-        # BREAK EVEN points
+    def generate_break_even_points(self):
+        logging.debug(f"{self.symbol} GENERATING BREAK EVEN POINTS...")
+        # break even points for LONG
         self.data_grid['LONG']['break_even_line']['price'] = round_to_tick(
             abs(self.data_grid['LONG']['hedge_line']['price'] * (1 + (self.data_grid['LONG']['break_even_line']['win_distance']/100))),
             self.data_grid['tick_size']) #break even price for LONG side
@@ -210,7 +234,7 @@ class RecoveryZone:
             self.data_grid['LONG']['break_even_line']['win_quantity'] * self.data_grid['LONG']['break_even_line']['price'], 2) #cost for LONG side as win
         self.data_grid['LONG']['break_even_line']['lost_cost'] = round(
             self.data_grid['LONG']['break_even_line']['lost_quantity'] * self.data_grid['LONG']['break_even_line']['price'], 2)
-
+        # break even points for SHORT
         self.data_grid['SHORT']['break_even_line']['price'] = round_to_tick(
             abs(self.data_grid['SHORT']['hedge_line']['price'] * (1 - (self.data_grid['SHORT']['break_even_line']['win_distance']/100))),
             self.data_grid['tick_size']) # break even price for short side
@@ -221,16 +245,19 @@ class RecoveryZone:
         self.data_grid['SHORT']['break_even_line']['lost_cost'] = round(
             self.data_grid['SHORT']['break_even_line']['lost_quantity'] * self.data_grid['SHORT']['break_even_line']['price'] ,2)
 
-        # TAKE PROFIT points
+    def generate_take_profit_points(self):
+        logging.debug(f"{self.symbol} GENERATING TAKE PROFIT POINTS...")
+        # generate take profit point for LONG
         self.data_grid['LONG']['take_profit_line']['price'] = round_to_tick(
             abs(self.data_grid['LONG']['break_even_line']['price'] * (1 + (self.data_grid['LONG']['take_profit_line']['distance'] / 100))),
             self.data_grid['tick_size'])
-
+        # generate take profit for SHORT
         self.data_grid['SHORT']['take_profit_line']['price'] = round_to_tick(
             abs(self.data_grid['SHORT']['break_even_line']['price'] * (1 - (self.data_grid['SHORT']['take_profit_line']['distance'] / 100))),
             self.data_grid['tick_size'])
 
-        # STOP LOSS POINTS
+    def generate_stop_loss_points(self):
+        logging.debug(f"{self.symbol} GENERATING STOP LOSS POINTS...")
         self.data_grid['LONG']['stop_loss_line']['price'] = self.data_grid['SHORT']['take_profit_line']['price']
         self.data_grid['SHORT']['stop_loss_line']['price'] = self.data_grid['LONG']['take_profit_line']['price']
 
@@ -240,6 +267,23 @@ class RecoveryZone:
         target_price = self.data_grid[self.opos_side]['hedge_line']['price'] * (1 + target_distance / 100) if self.pos_side == 'LONG' else self.data_grid[self.opos_side]['hedge_line']['price'] * (1 - target_distance / 100)
         self.data_grid[self.opos_side]['recovery_line']['price'] = round_to_tick(target_price, self.data_grid['tick_size'])
         self.data_grid[self.opos_side]['recovery_line']['quantity'] = self.data_grid[self.opos_side]['hedge_line']['quantity']
+
+    def generate_trailing_stop(self):
+        self.data_grid[self.pos_side]['trailing_stop_line']['activation_price'] = round_to_tick((self.data_grid[self.pos_side]['hedge_line']['price'] + self.data_grid[self.pos_side]['take_profit_line']['price']) / 2, self.data_grid['tick_size']) #getting the middle price for trailing
+        callback_rate = get_distance(self.data_grid[self.pos_side]['trailing_stop_line']['activation_price'], self.data_grid[self.pos_side]['hedge_line']['price']) #distance between entry and take profit
+        if float(callback_rate) <= 10: # the maximum distance of callback is 10
+            self.data_grid[self.pos_side]['trailing_stop_line']['callback_rate'] = callback_rate
+        else:
+            self.data_grid[self.pos_side]['trailing_stop_line']['callback_rate'] = 10.00
+
+        self.data_grid[self.pos_side]['trailing_stop_line']['quantity'] = self.data_grid[self.pos_side]['hedge_line']['quantity']
+        self.data_grid[self.pos_side]['trailing_stop_line']['cost'] = round(self.data_grid[self.pos_side]['trailing_stop_line']['activation_price'] * self.data_grid[self.pos_side]['trailing_stop_line']['quantity'] ,2)
+
+    def generate_stop_loss_protection(self):
+        logging.debug(f"{self.symbol} GENERATING STOP LOSS PROTECTION POINT...")
+        protection_distance = float(self.data_grid[self.pos_side]['stop_loss_line']['protection_distance'])
+        target_price = self.data_grid[self.pos_side]['hedge_line']['price'] * (1 + protection_distance / 100) if self.pos_side == 'LONG' else self.data_grid[self.pos_side]['hedge_line']['price'] * (1 - protection_distance / 100)
+        self.data_grid[self.pos_side]['stop_loss_line']['price'] = round_to_tick(target_price, self.data_grid['tick_size'])
 
 
 
