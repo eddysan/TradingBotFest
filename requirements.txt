@@ -12,3 +12,4 @@ tzlocal==5.2
 websockets==13.1
 wheel==0.43.0
 binance-connector==3.9.0
+websocket-client==1.8.0

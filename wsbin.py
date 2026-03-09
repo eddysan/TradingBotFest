@@ -1,4 +1,10 @@
+#!/home/eddysan/Projects/TradingBotFest/.venv/bin/python3
+
+import os
+import logging
+import json
 from websocket import WebSocketApp
+
 import time
 import concurrent.futures
 from package_theloadunload import *
@@ -103,7 +109,13 @@ def close_websocket():
         print("WebSocket connection closed.")
 
 if __name__ == "__main__":
-    try:
-        start_futures_stream()
-    except KeyboardInterrupt:
-        close_websocket()  # Close WebSocket on keyboard interrupt
+    while True:
+        try:
+            start_futures_stream()
+        except KeyboardInterrupt:
+            close_websocket()  # Close WebSocket on keyboard interrupt
+            break
+        except Exception as e:
+            logging.error(f"Stream crashed: {e}, restarting in 5s...")
+            time.sleep(5)
+            
