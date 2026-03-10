@@ -6,6 +6,8 @@ import json
 from websocket import WebSocketApp
 
 import time
+from requests.exceptions import ConnectionError
+
 import concurrent.futures
 from package_theloadunload import *
 from package_cardiac import *
@@ -118,4 +120,3 @@ if __name__ == "__main__":
         except Exception as e:
             logging.error(f"Stream crashed: {e}, restarting in 5s...")
             time.sleep(5)
-            
