@@ -4,11 +4,10 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/tbot/TradingBotFest
-ExecStart=/tbot/TradingBotFest/.venv/bin/python3 wsbin.py
+WorkingDirectory=%h/TradingBotFest
+ExecStart=%h/TradingBotFest/.venv/bin/python3 %h/TradingBotFest/wsbin.py
 Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
