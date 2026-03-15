@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/TradingBotFest
+            cd /tbot/TradingBotFest
             git pull origin main
             source .venv/bin/activate
             pip install -r requirements.txt

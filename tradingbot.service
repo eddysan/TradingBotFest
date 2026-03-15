@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/TradingBotFest
-ExecStart=/root/TradingBotFest/.venv/bin/python3 wsbin.py
+WorkingDirectory=/tbot/TradingBotFest
+ExecStart=/tbot/TradingBotFest/.venv/bin/python3 wsbin.py
 Restart=always
 RestartSec=5
 
