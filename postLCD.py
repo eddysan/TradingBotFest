@@ -8,10 +8,10 @@ import time
 from package_theloadunload import *
 
 # Activating the virtual environment
-venv_path = os.path.join(os.path.dirname(__file__), '.venv/bin/activate_this.py')
-if os.path.exists(venv_path):
-    with open(venv_path) as f:
-        exec(f.read(), {'__file__': venv_path})
+#venv_path = os.path.join(os.path.dirname(__file__), '.venv/bin/activate_this.py')
+#if os.path.exists(venv_path):
+#    with open(venv_path) as f:
+#        exec(f.read(), {'__file__': venv_path})
 
 # logging config
 os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
