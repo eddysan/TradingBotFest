@@ -21,7 +21,8 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /tbot/TradingBotFest
+            export XDG_RUNTIME_DIR=/run/user/$(id -u)
+            cd ~/TradingBotFest
             git fetch --all
             git reset --hard origin/main
             git pull origin main
