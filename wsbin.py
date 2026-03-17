@@ -1,6 +1,8 @@
 #!/home/eddysan/Projects/TradingBotFest/.venv/bin/python3
 
 import os
+from dotenv import load_dotenv
+
 import logging
 import json
 from websocket import WebSocketApp
@@ -14,8 +16,9 @@ from package_cardiac import *
 from package_recoveryzone import *
 from package_connection import client
 
-# logging config
-os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
+dotenv_path = os.path.join(os.path.dirname(__file__), 'config', '.credentials.env')
+load_dotenv(dotenv_path) #loading credentials
+
 
 # Create a logger object
 logger = logging.getLogger()
@@ -84,9 +87,16 @@ def start_futures_stream():
     try:
         # Create a listen key for the futures user data stream
         listen_key = client.futures_stream_get_listen_key()
+        
+        is_testnet = (os.getenv('TESTNET') == 'True')
+        if is_testnet:
+            url = f"wss://fstream.binancefuture.com/ws/{listen_key}" #testnet websocket url
+            logging.info(f"TESTNET websocket CONNECTED!")
+        else:
+            url = f"wss://fstream.binance.com/ws/{listen_key}" #production websocket url
+            logging.info(f"PRODUCTION websocket CONNECTED!")
 
-        # Initialize the WebSocket connection
-        ws = WebSocketApp(f"wss://fstream.binance.com/ws/{listen_key}",
+        ws = WebSocketApp(url,
                           on_message=on_message,
                           on_error=on_error,
                           on_close=on_close)

@@ -8,7 +8,7 @@ if os.path.exists(venv_path):
         exec(f.read(), {'__file__': venv_path})
 
 # logging config
-os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
+#os.makedirs('logs', exist_ok=True) # creates logs directory if doesn't exist
 
 # Create a logger object
 logger = logging.getLogger()

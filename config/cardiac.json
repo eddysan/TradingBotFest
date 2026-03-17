@@ -108,6 +108,7 @@
             "status": "NONE"
         },
         "stop_loss_line": {
+            "enabled": true,
             "label": "STOP_LOSS",
             "side": "BUY",
             "position_side": "SHORT",

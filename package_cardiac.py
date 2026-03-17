@@ -4,7 +4,7 @@ from package_connection import client
 # input data from console
 def input_data():
     logging.debug(f"INPUT DATA...")
-    config = read_config_data(f"config/cardiac.config") #reading config file
+    config = read_config_data(f"config/cardiac.json") #reading config file
 
     # INPUT symbol
     config['symbol'] = input("Symbol (BTC): ").upper() + "USDT"
