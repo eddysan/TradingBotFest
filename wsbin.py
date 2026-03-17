@@ -90,7 +90,7 @@ def start_futures_stream():
         
         is_testnet = (os.getenv('TESTNET') == 'True')
         if is_testnet:
-            url = f"wss://fstream.binancefuture.com/ws/{listen_key}" #testnet websocket url
+            url = f"wss://fstream.binancefuture.com/ws/{listen_key}" #testnet websocket url (Futures Testnet)
             logging.info(f"TESTNET websocket CONNECTED!")
         else:
             url = f"wss://fstream.binance.com/ws/{listen_key}" #production websocket url

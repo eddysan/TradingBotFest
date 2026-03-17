@@ -15,19 +15,29 @@ def get_connection():
         if is_testnet:
             api_key = os.getenv('BINANCE_TEST_API_KEY')
             api_secret = os.getenv('BINANCE_TEST_API_SECRET')
+            logging.info("Connecting to Binance TESTNET...")
         else:
             api_key = os.getenv('BINANCE_PROD_API_KEY')
             api_secret = os.getenv('BINANCE_PROD_API_SECRET')
+            logging.info("Connecting to Binance PRODUCTION...")
         
         # Initialize the Binance client
         client = Client(api_key, api_secret, testnet=is_testnet)
+        
+        # Manual override for Futures URLs because python-binance doesn't always set them correctly for testnet
+        if is_testnet:
+            client.API_URL = 'https://testnet.binance.vision/api'
+            client.FUTURES_URL = 'https://testnet.binancefuture.com/fapi'
+            logging.debug(f"Testnet URLs set: API_URL={client.API_URL}, FUTURES_URL={client.FUTURES_URL}")
+
         client.ping()  # Ensure connection
         client.get_server_time()  # getting server time from binance
         client.timestamp_offset = client.get_server_time()['serverTime'] - int(time.time() * 1000)  # Enable time synchronization
         return client
 
     except Exception as e:
-        logging.exception(f"Binance connection error, check credentials or internet: {e}")
+        logging.exception(f"Binance connection error: {e}")
+        return None
 
 client = get_connection() #initializing client as global variable
 
