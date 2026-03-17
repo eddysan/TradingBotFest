@@ -25,6 +25,7 @@ logger.addHandler(file_handler)
 
 symbol = input_data() #getting data from terminal
 
+# post cardiac orders
 if symbol is not None:
     car = CardiacGrid(symbol)
     car.post_order()
