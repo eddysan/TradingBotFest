@@ -272,7 +272,6 @@ def post_take_profit_order(symbol, data_line):
             symbol=symbol,
             side=side,
             type='TAKE_PROFIT_MARKET',
-            timeInForce='GTC',
             positionSide=position_side,
             stopPrice=price,
             closePosition=True
