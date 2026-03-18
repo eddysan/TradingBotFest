@@ -304,6 +304,7 @@ def post_stop_loss_order(symbol, data_line):
             side=side,
             positionSide=position_side,
             type='STOP_MARKET',
+            timeInForce='GTC',
             stopPrice=price,
             closePosition=True
         )
