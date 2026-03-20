@@ -21,24 +21,5 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            export XDG_RUNTIME_DIR=/run/user/$(id -u)
             cd ~/TradingBotFest
-            git fetch --all
-            git reset --hard origin/main
-            git pull origin main
-            
-            # recreate virtual environment
-            rm -fr .venv
-            python3 -m venv .venv
-            source .venv/bin/activate
-            pip install -r requirements.txt
-            
-            # create necessary directories
-            mkdir -p logs ops config
-            
-            # setup systemd user service
-            mkdir -p ~/.config/systemd/user
-            cp -f config/tradingbot.service ~/.config/systemd/user/
-            systemctl --user daemon-reload
-            systemctl --user enable tradingbot
-            systemctl --user restart tradingbot
+            bash update.sh
