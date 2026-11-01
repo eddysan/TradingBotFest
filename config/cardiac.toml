@@ -1,0 +1,29 @@
+# CONFIGURACIÓN ESTRATEGIA CARDIAC
+
+[take_profit]
+# Habilitar la orden take profit (false = bot no pondrá la orden)
+enabled = true
+# Porcentaje de distancia entre la posición actual y el TP.
+# Se activa con la compra inicial y se ajusta según el movimiento del PnL.
+distance = 3.0
+
+[stop_loss]
+# Habilitar la orden stop loss siempre
+enabled = true
+# Porcentaje de pérdida del capital total (sugerencia para el cálculo de SL)
+risk = 10.0
+
+[unload]
+# Habilitar orden de descarga (se activa desde la primera recompra)
+enabled = true
+# Porcentaje de distancia desde el PnL hasta el unload
+distance = 1.0
+# Porcentaje de pérdida para activar descarga (ej: 50% del riesgo inicial)
+# El monitoreo se hace en cada recompra
+lost_active = 50.0
+
+[buy_back]
+# Habilitar orden de recompra al tomar una orden
+enabled = true
+# Porcentaje de distancia desde el PnL hasta el buy_back
+distance = 2.0
