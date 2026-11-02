@@ -1,5 +1,21 @@
 schema: spec-driven
 
+context: |
+  openspec/specs/ is a behavioral baseline of the current Rust bot, written from
+  the working tree rather than from an approved target design. Requirements
+  describe what the code does today. Suspected defects are recorded as
+  "Known deviations" in the owning spec and in
+  openspec/changes/baseline-audit/design.md; they are not approved intent.
+
+  The Python implementation under assets/old_python/ is archived and is not
+  run. The SQLite migrations, config/*.toml files, and
+  openspec/changes/add-dca-safety-assistant/ are not live behavior. Do not
+  treat any of them as requirements for current work.
+
+  Any change that intentionally alters baseline behavior must name the
+  affected capability and requirement, and must say whether it removes a
+  known deviation or introduces a new one.
+
 # Project context (optional)
 # Add only constraints that should guide OpenSpec artifacts and workflows.
 # Include constraints an agent cannot infer by reading the code.

@@ -7,3 +7,5 @@ logs/*
 test/
 __pycache__
 test.py
+/target/
+.env

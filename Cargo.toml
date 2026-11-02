@@ -1,32 +1,45 @@
 [package]
-name = "trading_bot_fest_rust"
+name = "trading_bot_fest"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-
-# SQLx - async SQL with compile-time checked queries
-sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "sqlite", "chrono", "rust_decimal"] }
-
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-anyhow = "1.0"
-rust_decimal = "1.34"
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+url = "2"
 dotenvy = "0.15"
 toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
+anyhow = "1"
 
-binance-sdk = { version = "44.0.1", features = [
-    "derivatives_trading_usds_futures",
-    "spot",
-] }
-futures-util = "0.3"
-axum = "0.7"
-tower-http = { version = "0.5", features = ["cors", "trace"] }
-reqwest = { version = "0.13.2", features = ["json"] }
+[[bin]]
+name = "bot"
+path = "src/bin/bot.rs"
 
+[[bin]]
+name = "cardiac"
+path = "src/bin/cardiac.rs"
+
+[[bin]]
+name = "load_unload"
+path = "src/bin/load_unload.rs"
+
+[[bin]]
+name = "recovery_zone"
+path = "src/bin/recovery_zone.rs"
+
+[[bin]]
+name = "clean_orders"
+path = "src/bin/clean_orders.rs"
+
+[profile.release]
+lto = true

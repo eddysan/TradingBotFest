@@ -4,13 +4,12 @@ git fetch --all
 git reset --hard origin/main
 git pull origin main
 
-# activating virtual environment
-rm -fr .venv
-python3 -m venv .venv
-source .venv/bin/activate
-
-# installing dependencies
-pip install -r requirements.txt
+# building the rust binaries
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "cargo not found; install Rust from https://rustup.rs and re-run" >&2
+    exit 1
+fi
+cargo build --release
 
 # setting up user service
 mkdir -p ~/.config/systemd/user
@@ -35,4 +34,3 @@ fi
 
 # restarting service
 systemctl --user restart tradingbot
-
