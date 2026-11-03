@@ -30,7 +30,7 @@ fn required(name: &str) -> Result<String> {
 /// testnet or production key pair. `TESTNET` is the variable the Python bot
 /// used; `USE_TESTNET` is accepted as an alias.
 pub fn load_credentials() -> Result<Credentials> {
-    for path in ["config/.credentials.env", ".env"] {
+    for path in [".credentials.env", ".env"] {
         if Path::new(path).exists() {
             let _ = dotenvy::from_path(path);
         }
